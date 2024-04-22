@@ -27,6 +27,12 @@ v16.15.0
     "blockchain": {
         "rpc_endpoint": "https://rpc.sentry-02.theta-testnet.polypore.xyz"
     },
+    "captcha": // see section on recapture below
+    {
+        "enabled": true,
+        "siteKey": "<<INSERT SITE KEY>>", //shared with the user
+        "siteSecret": "<<INSERT SITE SECRET>>" //not shared with the user. Server side only.
+    },
     "sender": {
         "mnemonic": "surround miss nominee dream gap cross assault thank captain prosper drop duty group candy wealth weather scale put",
         "option": {
@@ -89,5 +95,19 @@ Your donation will help us make better products. Thanks in advance.
  - You can donate any token in the Cosmos ecosystem: [here](https://ping.pub/coffee)
  
  
- 
+# Enable reCaptcha
+Follow these steps to enable reCaptcha on the front and back end:
+
+1. Register the Site with reCAPTCHA: Go to the [Google reCAPTCHA Admin console](https://www.google.com/recaptcha/admin/create), register thr site, and choose the type of reCAPTCHA. You'll receive a site key and a secret key after registration.
+2. Update the `config.js` file with the following section:
+```
+export default {
+    ... // existing config
+    captcha:
+    {
+        enabled: true,
+        siteKey: "<<INSERT SITE KEY>>", //shared with the user
+        siteSecret: "<<INSERT SITE SECRET>>" //not shared with the user. Server side only.
+    },
+```
  

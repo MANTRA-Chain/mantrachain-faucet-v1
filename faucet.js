@@ -1,6 +1,6 @@
 import express from 'express';
 import * as path from 'path'
-
+import axios from 'axios';
 import { Wallet } from '@ethersproject/wallet'
 import {
   Bip39,
@@ -23,10 +23,13 @@ import { SigningStargateClient } from "@cosmjs/stargate";
 import conf from './config.js'
 import { FrequencyChecker } from './checker.js';
 
+
 // load config
 console.log("loaded config: ", conf)
 
 const app = express()
+
+app.use(express.json());
 
 const checker = new FrequencyChecker(conf)
 
@@ -36,12 +39,12 @@ app.get('/', (req, res) => {
 
 app.get('/config.json', async (req, res) => {
   const sample = {}
-  for(let i =0; i < conf.blockchains.length; i++) {
+  for (let i = 0; i < conf.blockchains.length; i++) {
     const chainConf = conf.blockchains[i]
     const wallet = await DirectSecp256k1HdWallet.fromMnemonic(chainConf.sender.mnemonic, chainConf.sender.option);
     const [firstAccount] = await wallet.getAccounts();
     sample[chainConf.name] = firstAccount.address
-    if(chainConf.type === 'Ethermint') {
+    if (chainConf.type === 'Ethermint') {
       const wallet = await fromMnemonicEthermint(chainConf.sender.mnemonic, chainConf.sender.option);
       sample[chainConf.name] = wallet.address;
     }
@@ -53,27 +56,31 @@ app.get('/config.json', async (req, res) => {
   const project = conf.project
   project.sample = sample
   project.blockchains = conf.blockchains.map(x => x.name)
+
+  if (conf.captcha && conf.captcha.enabled)
+    project.siteKey = conf.captcha.siteKey;
+
   res.send(project);
 })
 
 app.get('/balance/:chain', async (req, res) => {
-  const { chain }= req.params
+  const { chain } = req.params
 
   let balance = {}
 
-  try{
+  try {
     const chainConf = conf.blockchains.find(x => x.name === chain)
-    if(chainConf) {
-      if(chainConf.type === 'Ethermint') {
+    if (chainConf) {
+      if (chainConf.type === 'Ethermint') {
         const ethProvider = new ethers.providers.JsonRpcProvider(chainConf.endpoint.evm_endpoint);
         const wallet = Wallet.fromMnemonic(chainConf.sender.mnemonic).connect(ethProvider);
         await wallet.getBalance().then(ethBlance => {
           balance = {
-            denom:chainConf.tx.amount.denom,
-            amount:ethBlance.toString()
+            denom: chainConf.tx.amount.denom,
+            amount: ethBlance.toString()
           }
         }).catch(e => console.error(e))
-      }else{
+      } else {
         const rpcEndpoint = chainConf.endpoint.rpc_endpoint;
         const wallet = await DirectSecp256k1HdWallet.fromMnemonic(chainConf.sender.mnemonic, chainConf.sender.option);
         const client = await SigningStargateClient.connectWithSigner(rpcEndpoint, wallet);
@@ -83,30 +90,50 @@ app.get('/balance/:chain', async (req, res) => {
         }).catch(e => console.error(e));
       }
     }
-  } catch(err) {
+  } catch (err) {
     console.log(err)
   }
   res.send(balance);
 })
 
-app.get('/send/:chain/:address', async (req, res) => {
-  const {chain, address} = req.params;
+app.post('/send/:chain/:address', async (req, res) => {
+  const { chain, address } = req.params;
   const ip = req.headers['x-real-ip'] || req.headers['X-Real-IP'] || req.headers['X-Forwarded-For'] || req.ip
   console.log('request tokens to ', address, ip)
-  if (chain || address ) {
+ 
+  if(conf.captcha && conf.captcha.enabled) {
+
+    let isCaptchaValid = false;
+
+    try {
+      const recaptchaResponse = req.body?.recaptchaResponse; 
+      isCaptchaValid = await verifyRecaptcha(recaptchaResponse, conf.captcha.siteSecret);
+    }
+    catch {
+      console.error("Recapture was not valid");
+    }
+   
+    if(!isCaptchaValid)
+    {
+      res.send({ result: "CAPTCHA verification failed" });
+      return;
+    }
+  }
+ 
+  if (chain || address) {
     try {
       const chainConf = conf.blockchains.find(x => x.name === chain)
       if (chainConf && (address.startsWith(chainConf.sender.option.prefix) || address.startsWith('0x'))) {
-        if( await checker.checkAddress(address, chain) && await checker.checkIp(`${chain}${ip}`, chain) ) {
+        if (await checker.checkAddress(address, chain) && await checker.checkIp(`${chain}${ip}`, chain)) {
           checker.update(`${chain}${ip}`) // get ::1 on localhost
           sendTx(address, chain).then(ret => {
 
             checker.update(address)
             res.send({ result: ret })
           }).catch(err => {
-            res.send({ result: `err: ${err}`})
+            res.send({ result: `err: ${err}` })
           });
-        }else {
+        } else {
           res.send({ result: "You requested too often" })
         }
       } else {
@@ -127,10 +154,22 @@ app.listen(conf.port, () => {
   console.log(`Faucet app listening on port ${conf.port}`)
 })
 
+async function verifyRecaptcha(recaptchaResponse, secretKey) {
+  const url = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptchaResponse}`;
+
+  try {
+      const response = await axios.post(url);
+      return response.data.success;  // returns true if verification is successful
+  } catch (error) {
+      console.error('Error verifying CAPTCHA', error);
+      return false;  // return false if there's an error during verification
+  }
+}
+
 async function sendCosmosTx(recipient, chain) {
   // const mnemonic = "surround miss nominee dream gap cross assault thank captain prosper drop duty group candy wealth weather scale put";
-  const chainConf = conf.blockchains.find(x => x.name === chain) 
-  if(chainConf) {
+  const chainConf = conf.blockchains.find(x => x.name === chain)
+  if (chainConf) {
     const wallet = await DirectSecp256k1HdWallet.fromMnemonic(chainConf.sender.mnemonic, chainConf.sender.option);
     const [firstAccount] = await wallet.getAccounts();
 
@@ -150,38 +189,38 @@ async function sendCosmosTx(recipient, chain) {
 
 async function sendEvmosTx(recipient, chain) {
 
-  try{
-    const chainConf = conf.blockchains.find(x => x.name === chain) 
+  try {
+    const chainConf = conf.blockchains.find(x => x.name === chain)
     // const ethProvider = new ethers.providers.JsonRpcProvider(chainConf.endpoint.evm_endpoint);
 
     const wallet = Wallet.fromMnemonic(chainConf.sender.mnemonic); // .connect(ethProvider);
 
-    let evmAddress =  recipient;
-    if(recipient && !recipient.startsWith('0x')) {
+    let evmAddress = recipient;
+    if (recipient && !recipient.startsWith('0x')) {
       let decode = bech32.decode(recipient);
       let array = bech32.fromWords(decode.words);
-      evmAddress =  "0x" + toHexString(array);
+      evmAddress = "0x" + toHexString(array);
     }
 
     let result = await wallet.sendTransaction(
-        { 
-          from:wallet.address,
-          to:evmAddress,
-          value:chainConf.tx.amount.amount
-        }
-      );
-   
+      {
+        from: wallet.address,
+        to: evmAddress,
+        value: chainConf.tx.amount.amount
+      }
+    );
+
     let repTx = {
-      "code":0,
-      "nonce":result["nonce"],
-      "value":result["value"].toString(),
-      "hash":result["hash"]
+      "code": 0,
+      "nonce": result["nonce"],
+      "value": result["value"].toString(),
+      "hash": result["hash"]
     };
 
-    console.log("xxl result : ",repTx);
+    console.log("xxl result : ", repTx);
     return repTx;
-  }catch(e){
-    console.log("xxl e ",e);
+  } catch (e) {
+    console.log("xxl e ", e);
     return e;
   }
 
@@ -189,13 +228,13 @@ async function sendEvmosTx(recipient, chain) {
 
 function toHexString(bytes) {
   return bytes.reduce(
-      (str, byte) => str + byte.toString(16).padStart(2, '0'), 
-      '');
+    (str, byte) => str + byte.toString(16).padStart(2, '0'),
+    '');
 }
 
 async function sendTx(recipient, chain) {
-  const chainConf = conf.blockchains.find(x => x.name === chain) 
-  if(chainConf.type === 'Ethermint') {
+  const chainConf = conf.blockchains.find(x => x.name === chain)
+  if (chainConf.type === 'Ethermint') {
     return sendEvmosTx(recipient, chain)
   }
   return sendCosmosTx(recipient, chain)
@@ -205,7 +244,7 @@ async function sendTx(recipient, chain) {
 async function sendEvmosTx2(recipient, chain) {
 
   // use evmosjs to send transaction
-  const chainConf = conf.blockchains.find(x => x.name === chain) 
+  const chainConf = conf.blockchains.find(x => x.name === chain)
   // create a wallet instance
   const wallet = Wallet.fromMnemonic(chainConf.sender.mnemonic).connect(chainConf.endpoint.evm_endpoint);
 }
@@ -218,7 +257,7 @@ async function fromMnemonicEthermint(mnemonic, options) {
   const hdPath = hdPaths[0];
   const { privkey } = Slip10.derivePath(Slip10Curve.Secp256k1, seed, hdPath);
   const { pubkey } = await Secp256k1.makeKeypair(privkey);
-  
+
   const coinType = pathToString(hdPath).split('/')[2]
   // ETH cointype=60
   if (coinType !== "60'") {
@@ -238,7 +277,7 @@ async function fromMnemonicEthermint(mnemonic, options) {
   const evmAddrWithoutHexPrefix = checksumAddress.replace(/^(-)?0x/i, '$1');
   const evmAddressBytes = fromHex(evmAddrWithoutHexPrefix);
   const evmToBech32Address = toBech32(prefix, evmAddressBytes);
-  
+
   return {
     algo: "eth_secp256k1",
     privkey: privkey,
@@ -246,3 +285,5 @@ async function fromMnemonicEthermint(mnemonic, options) {
     address: evmToBech32Address,
   }
 }
+
+
