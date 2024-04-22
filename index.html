@@ -3,12 +3,14 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Faucet for Cosmos SDK Blockchain</title>
+    <title>Mantrachain Faucet</title>
     <link rel="icon" href="https://ping.pub/favicon.ico" />
     <meta name=”robots” content="index, follow">
     <meta name="description" content="Uniform Faucet Tool For Cosmos SDK Blockchains - Powered By Ping.pub">
     <meta></head>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+    <script src="https://www.google.com/recaptcha/api.js?render=explicit" async defer></script>
+    
   </head>
   <body>
     <div id="app">
@@ -17,7 +19,7 @@
           <img id="logo" class="d-block mx-auto mb-4" style="max-width: 250px;" src="https://global-uploads.webflow.com/62ed98169164a3b640e4a87c/62f0f7e4d64065eda6d25e0b_mantra-gradient.svg" :alt="`${testnet} Faucet`">
           <h1><span id="testnet">{{ testnet }}</span> Faucet</h1>
           <p class="lead">
-              Welcome to {{ testnet }}! Are you looking for some tokens to start? 
+              Welcome to {{ testnet }}! Are you looking for some tokens to start?
           </p>
         </div>
         <div class="row g-5">
@@ -28,15 +30,19 @@
                 </select>
               </span>
               <input id="address" class="form-control" :placeholder="placeholder" v-model="address" name="address">
-              <button type="button" class="btn btn-secondary d-flex flex-row " @click="requestToken(this)">
+              <button type="button" class="btn btn-secondary d-flex flex-row g-recaptcha" @click="requestToken(this)">
                 <span>
                   <span id="button-loading" class="spinner-border spinner-border-sm mt-1 mr-1" style="display:none" role="status" aria-hidden="true"></span>
                 </span>
                <span class="sr-only">Request Token</span>
               </button>
+              
           </div>
+        
         </div>
-  
+        <div class="row p-2 g-5">
+          <div id="recaptcha_div" class="g-recaptcha" data-sitekey="{{siteKey}}"></div>
+        </div>
         <div id="message" v-html="message"></div>
   
       </main>
@@ -69,6 +75,7 @@
           fetch("/config.json").then(response => response.json()).then(data => {
             this.conf = data
             this.testnet = data.name
+            this.siteKey = data.siteKey
             this.logo = data.logo
             this.chain = data.blockchains[0]
             // this.placeholder = `Input an address (e.g.: ${data.sample[this.chain]}) to received tokens`
@@ -76,6 +83,11 @@
             if(data.deployer) {
                 this.deployer = `, Hosted By ${data.deployer}`
             }
+
+            window.setTimeout(() => {
+            if(grecaptcha && grecaptcha.render && data.siteKey)
+              grecaptcha.render('recaptcha_div', { 'sitekey' : data.siteKey });
+            }, 500);
           });
         },
         computed: {
@@ -98,12 +110,40 @@
             })
           },
           requestToken(obj) {
+            
+            let recaptchaResponse = "";
+            // the presence of a siteKey means captcha is enabled.
+            if(this.siteKey) {
+              recaptchaResponse = grecaptcha.getResponse();
+              
+              if(!recaptchaResponse || recaptchaResponse == "") {
+                this.message = '<div class="alert alert-danger m-3">CAPTCHA verification required</div>';
+                return;
+              }
+            }
+
+            if(!this.address || this.address == "") {
+              this.message = '<div class="alert alert-danger m-3">Please input an address</div>';
+              return;
+            }
+
+
             if (this.address) {
               // button state
               obj.disabled = true
               document.getElementById("button-loading").style.display = 'block';
-              
-              fetch(`/send/${this.chain}/${this.address}`).then(response => response.json()).then(data => {
+              const payload = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ recaptchaResponse })
+              }
+
+
+              fetch(`/send/${this.chain}/${this.address}`, payload).then(response => response.json()).then(data => {
+                  if(this.siteKey)
+                    grecaptcha.reset();
                   // button state
                   obj.disabled = false
                   document.getElementById("button-loading").style.display = 'none';
@@ -116,8 +156,6 @@
                   </div>
                   `
               });
-            } else {
-                this.message = '<span class="text-danger">Address is required</span>'
             }
           }
         }
