@@ -1,4 +1,6 @@
 import express from 'express';
+import crypto from 'crypto';
+
 import * as path from 'path'
 import axios from 'axios';
 import { Wallet } from '@ethersproject/wallet'
@@ -23,9 +25,17 @@ import { SigningStargateClient } from "@cosmjs/stargate";
 import conf from './config.js'
 import { FrequencyChecker } from './checker.js';
 
+const logger = {
+  info: (message, params) => {
+      console.log(`[INFO] [${new Date().toISOString()}] ${message}`, params);
+  },
+  error: (message) => {
+      console.error(`[ERROR] [${new Date().toISOString()}] ${message}`);
+  }
+};
 
 // load config
-console.log("loaded config: ", conf)
+logger.info("loaded config: ", conf);
 
 const app = express()
 
@@ -36,6 +46,10 @@ const checker = new FrequencyChecker(conf)
 app.get('/', (req, res) => {
   res.sendFile(path.resolve('./index.html'));
 })
+app.get('/powWorker.js', (req, res) => {
+  res.sendFile(path.resolve('./powWorker.js'));
+})
+
 
 app.get('/config.json', async (req, res) => {
   const sample = {}
@@ -50,7 +64,7 @@ app.get('/config.json', async (req, res) => {
     }
 
     const wallet2 = Wallet.fromMnemonic(chainConf.sender.mnemonic, pathToString(chainConf.sender.option.hdPaths[0]));
-    console.log('address:', sample[chainConf.name], wallet2.address);
+    logger.info('address:', sample[chainConf.name], wallet2.address);
   }
 
   const project = conf.project
@@ -79,7 +93,7 @@ app.get('/balance/:chain', async (req, res) => {
             denom: chainConf.tx.amount.denom,
             amount: ethBlance.toString()
           }
-        }).catch(e => console.error(e))
+        }).catch(e => logger.error(e))
       } else {
         const rpcEndpoint = chainConf.endpoint.rpc_endpoint;
         const wallet = await DirectSecp256k1HdWallet.fromMnemonic(chainConf.sender.mnemonic, chainConf.sender.option);
@@ -87,19 +101,34 @@ app.get('/balance/:chain', async (req, res) => {
         const [firstAccount] = await wallet.getAccounts();
         await client.getBalance(firstAccount.address, chainConf.tx.amount.denom).then(x => {
           return balance = x
-        }).catch(e => console.error(e));
+        }).catch(e => logger.error(e));
       }
     }
   } catch (err) {
-    console.log(err)
+    logger.info(err)
   }
   res.send(balance);
 })
 
+
+app.get('/pow-challenge', async (req, res) => {
+  if(conf.pow && conf.pow.enabled)
+  {
+    const nonce = crypto.randomBytes(16).toString('hex'); // Generate a random nonce
+    const timestamp = Date.now();
+    await checker.update(nonce);
+    res.json({ nonce, timestamp, difficulty: conf.pow.difficulty });
+    }
+    else{
+      res.status(200).json({ result: "disabled"});
+    }
+});
+
+
 app.post('/send/:chain/:address', async (req, res) => {
   const { chain, address } = req.params;
   const ip = req.headers['x-real-ip'] || req.headers['X-Real-IP'] || req.headers['X-Forwarded-For'] || req.ip
-  console.log('request tokens to ', address, ip)
+  logger.info(`Request for tokens to ${address} from IP ${ip}`);
  
   if(conf.captcha && conf.captcha.enabled) {
 
@@ -110,12 +139,25 @@ app.post('/send/:chain/:address', async (req, res) => {
       isCaptchaValid = await verifyRecaptcha(recaptchaResponse, conf.captcha.siteSecret);
     }
     catch {
-      console.error("Recapture was not valid");
+      logger.error(`Recapture was not valid for request from ${address} from IP ${ip}`);
     }
    
     if(!isCaptchaValid)
     {
       res.status(400).send({ result: "CAPTCHA verification failed" });
+      return;
+    }
+  }
+
+  if(conf.pow && conf.pow.enabled) {
+    const nonce = req.body?.nonce;
+    const solution = req.body?.solution;
+    const timestamp = req.body?.timestamp;
+    
+    const verified = await verifyPOW(nonce, timestamp, solution);
+    if(!verified) {
+      
+      res.status(404).send({result: "POW Challenge was not solved or incorrect."});
       return;
     }
   }
@@ -140,7 +182,7 @@ app.post('/send/:chain/:address', async (req, res) => {
         res.status(400).send({ result: `Address [${address}] is not supported.` })
       }
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       res.status(500).send({ result: 'Failed, Please contact to admin.' })
     }
 
@@ -151,7 +193,7 @@ app.post('/send/:chain/:address', async (req, res) => {
 })
 
 app.listen(conf.port, () => {
-  console.log(`Faucet app listening on port ${conf.port}`)
+  logger.info(`Faucet app listening on port ${conf.port}`)
 })
 
 async function verifyRecaptcha(recaptchaResponse, secretKey) {
@@ -161,7 +203,7 @@ async function verifyRecaptcha(recaptchaResponse, secretKey) {
       const response = await axios.post(url);
       return response.data.success;  // returns true if verification is successful
   } catch (error) {
-      console.error('Error verifying CAPTCHA', error);
+      logger.error('Error verifying CAPTCHA', error);
       return false;  // return false if there's an error during verification
   }
 }
@@ -173,7 +215,7 @@ async function sendCosmosTx(recipient, chain) {
     const wallet = await DirectSecp256k1HdWallet.fromMnemonic(chainConf.sender.mnemonic, chainConf.sender.option);
     const [firstAccount] = await wallet.getAccounts();
 
-    // console.log("sender", firstAccount);
+
 
     const rpcEndpoint = chainConf.endpoint.rpc_endpoint;
     const client = await SigningStargateClient.connectWithSigner(rpcEndpoint, wallet);
@@ -217,10 +259,10 @@ async function sendEvmosTx(recipient, chain) {
       "hash": result["hash"]
     };
 
-    console.log("xxl result : ", repTx);
+    logger.info("xxl result : ", repTx);
     return repTx;
   } catch (e) {
-    console.log("xxl e ", e);
+    logger.info("xxl e ", e);
     return e;
   }
 
@@ -261,7 +303,7 @@ async function fromMnemonicEthermint(mnemonic, options) {
   const coinType = pathToString(hdPath).split('/')[2]
   // ETH cointype=60
   if (coinType !== "60'") {
-    console.error("Only support hapath with 60'");
+    logger.error("Only support hapath with 60'");
     return
   }
 
@@ -286,4 +328,29 @@ async function fromMnemonicEthermint(mnemonic, options) {
   }
 }
 
+async function verifyPOW(nonce, timestamp, solution) {
+  const powTarget =  '0'.repeat(conf.pow.difficulty);
+  const hash = crypto.createHash('sha256').update(`${nonce}${solution}`).digest('hex');
+  
+  // fetch from the database to ensure no reuse during the window
+  const dbTime = await checker.checkPOW(nonce);
+
+  if(!dbTime){
+    logger.info(`Did not find nonce (${nonce}) in the db`);
+    return false;
+  } else {
+    checker.remove(nonce); //remove it from the database
+  } 
+
+  if (hash.startsWith(powTarget) && (Date.now() - dbTime < estimateTime())) { // Verify solution and expiration
+      return true;
+  } else {
+      return false;
+  }
+}
+
+function estimateTime() {
+  const attemptsNeeded = Math.pow(16, conf.pow.difficulty);
+  return (attemptsNeeded / 90000) * 1000; //milliseconds
+}
 

@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mantrachain Faucet</title>
+  <link rel="icon" href="https://ping.pub/favicon.ico" />
+  <meta name=”robots” content="index, follow">
+  <meta name="description" content="Uniform Faucet Tool For Cosmos SDK Blockchains - Powered By Ping.pub">
+  <meta>
+</head>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
+  integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+<script src="https://www.google.com/recaptcha/api.js?render=explicit" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+
+</head>
+
+<body>
+  <div id="app">
+    <main class="container-md">
+      <div class="py-5 text-center">
+        <img id="logo" class="d-block mx-auto mb-4" style="max-width: 250px;"
+          src="https://global-uploads.webflow.com/62ed98169164a3b640e4a87c/62f0f7e4d64065eda6d25e0b_mantra-gradient.svg"
+          :alt="`${testnet} Faucet`">
+        <h1><span id="testnet">{{ testnet }}</span> Faucet</h1>
+        <p class="lead">
+          Welcome to {{ testnet }}! Are you looking for some tokens to start?
+        </p>
+      </div>
+      <div class="row g-5">
+        <div class="input-group">
+          <span class="input-group-text">
+            <select v-model="chain" @change="onChange()">
+              <option v-for="c in conf.blockchains">{{c}}</option>
+            </select>
+          </span>
+          <input id="address" class="form-control" :placeholder="placeholder" v-model="address" name="address">
+          <button type="button" class="btn btn-secondary d-flex flex-row g-recaptcha" @click="requestToken(this)">
+            <span>
+              <span id="button-loading" class="spinner-border spinner-border-sm mt-1 mr-1" style="display:none"
+                role="status" aria-hidden="true"></span>
+            </span>
+            <span class="sr-only">Request Token</span>
+          </button>
+        </div>
+      </div>
+      <div class="row p-2 g-5">
+        <div id="recaptcha_div" class="g-recaptcha" data-sitekey="{{siteKey}}"></div>
+      </div>
+      <div class="row p-2">
+        <div class="captcha-container" data-sqr-captcha-url="{{ .CaptchaURL }}"
+          data-sqr-captcha-challenge="{{ .Challenge }}" data-sqr-captcha-callback="captchaCallback">
+        </div>
+      </div>
+      <div class="row" v-if="progress > 0">
+        <div class="text-muted text-center">
+          <div class="spinner-grow text-primary spinner-grow-sm p-0" role="status">
+            <span class="visually-hidden"></span>
+          </div>
+          {{progressMessage}}
+        </div>
+        <div class="progress p-0">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+            :style="{ width: progress + '%' }" :aria-valuenow="progress" aria-valuemin="0" aria-valuemax="100">
+            {{progress}}%</div>
+        </div>
+      </div>
+      <div id="message" v-html="message"></div>
+
+    </main>
+
+    <footer class="my-5 pt-5 text-muted text-center text-small">
+      <p class="my-2"> Faucet Address: {{ faucet }}, <br> Balance: {{ balance.amount }} {{balance.denom}}</p>
+      <p class="mb-1">&copy; 2022 Built By <a href="https://ping.pub">Ping.pub</a><span id="deployer"
+          v-html="deployer"></span></p>
+      <ul class="list-inline">
+        <li class="list-inline-item"><a href="https://github.com/ping-pub/faucet.git">Deploy a new instance?</a></li>
+      </ul>
+    </footer>
+  </div>
+
+
+  <script type="module">
+    import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+
+    createApp({
+      data() {
+        return {
+          message: '',
+          testnet: 'Ping Testnet',
+          logo: 'https://ping.pub/logo.svg',
+          deployer: '',
+          address: '',
+          chain: '',
+          conf: {},
+          balance: {},
+          ethAddr: '0xxxx',
+          powCalculating: false,
+          progress: 0,
+          progressMessage: `Solving POW Challenge`,
+          difficulty: 0
+        }
+      },
+      created() {
+        fetch("/config.json").then(response => response.json()).then(data => {
+          this.conf = data
+          this.testnet = data.name
+          this.siteKey = data.siteKey
+          this.logo = data.logo
+          this.chain = data.blockchains[0]
+          // this.placeholder = `Input an address (e.g.: ${data.sample[this.chain]}) to received tokens`
+          this.onChange()
+          if (data.deployer) {
+            this.deployer = `, Hosted By ${data.deployer}`
+          }
+
+          window.setTimeout(() => {
+            if (grecaptcha && grecaptcha.render && data.siteKey)
+              grecaptcha.render('recaptcha_div', { 'sitekey': data.siteKey });
+          }, 500);
+        });
+      },
+      computed: {
+        placeholder() {
+          if (this.conf.sample) {
+            return `Input an address (e.g.: ${this.conf.sample[this.chain]}) to received tokens`
+          } else {
+            return 'Input an address to received tokens'
+          }
+        },
+        faucet() {
+          return this.conf.sample ? this.conf.sample[this.chain] : ''
+        }
+      },
+      methods: {
+        updateProgress(newValue) {
+          this.progress = newValue; // Directly update the reactive property
+          console.log("Progress updated to:", this.progress);
+        },
+        async solveChallenge(nonce, timestamp, difficulty) {
+          return new Promise(resolve => {
+            const worker = new Worker('powWorker.js');
+
+            worker.postMessage({ nonce, difficulty });
+        
+            worker.onmessage = (e) => {
+              if (e.data.type === 'solved') {
+                this.progress = 100; // Ensure progress is set to 100%
+                this.progressMessage = "Sending Request...";
+                resolve(e.data.solution);
+                worker.terminate();
+              } else if (e.data.type === 'progress') {
+                console.log(e.data.progress);
+              
+                this.progress = e.data.progress;
+                this.progressMessage = `Solving POW Challenge...`;
+              
+              }
+            };
+          });
+        },
+        onChange() {
+          this.balance = {} // reset balance
+          fetch(`/balance/${this.chain}`).then(r => r.json()).then(balance => {
+            this.balance = balance
+          })
+        },
+        async requestToken(obj) {
+          this.progress = 0;
+          let recaptchaResponse = "";
+          // the presence of a siteKey means captcha is enabled.
+          if (this.siteKey) {
+            recaptchaResponse = grecaptcha.getResponse();
+
+            if (!recaptchaResponse || recaptchaResponse == "") {
+              this.message = '<div class="alert alert-danger m-3">CAPTCHA verification required</div>';
+              return;
+            }
+          }
+
+          if (!this.address || this.address == "") {
+            this.message = '<div class="alert alert-danger m-3">Please input an address</div>';
+            return;
+          }
+
+          document.getElementById("button-loading").style.display = 'block';
+          const { nonce, timestamp, solution, difficulty } = await this.requestPowChallengeAndSolve();
+
+          this.submitData(obj, nonce, timestamp, solution, recaptchaResponse);
+
+        },
+        async requestPowChallengeAndSolve() {
+          const response = await fetch('/pow-challenge');
+          const { nonce, timestamp, difficulty } = await response.json();
+          this.difficulty = difficulty;
+          const solution = await this.solveChallenge(nonce, timestamp, difficulty);
+          return { nonce, timestamp, solution, difficulty };
+        },
+        submitData(obj, nonce, timestamp, solution, recaptchaResponse) {
+          fetch(`/send/${this.chain}/${this.address}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: this.address, nonce, timestamp, solution, recaptchaResponse })
+          }).then(response => response.json()).then(data => {
+            this.progress = 0; // Reset progress after submission
+            this.progressMessage = "";
+            obj.disabled = false;
+            document.getElementById("button-loading").style.display = 'none';
+            this.message = `<div class="alert alert-${data.result.code === 0 ? 'success' : 'danger'} alert-dismissible show fade mt-2" role="alert">
+                    <li>${data.result.code === 0 ? 'Token sent' : 'Request failed'}</li>
+                    <textarea class="form-control mt-1" rows="5" style="background-color:transparent">${JSON.stringify(data, null, 2)}</textarea>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+          }).catch(error => {
+            console.error('Error sending data:', error);
+            this.message = '<div class="alert alert-danger m-3">Failed to send the request.</div>';
+            obj.disabled = false;
+            document.getElementById("button-loading").style.display = 'none';
+          });
+        },
+
+        requestTokenOLD(obj) {
+          this.progress = 0;
+          let recaptchaResponse = "";
+          // the presence of a siteKey means captcha is enabled.
+          if (this.siteKey) {
+            recaptchaResponse = grecaptcha.getResponse();
+
+            if (!recaptchaResponse || recaptchaResponse == "") {
+              this.message = '<div class="alert alert-danger m-3">CAPTCHA verification required</div>';
+              return;
+            }
+          }
+
+          if (!this.address || this.address == "") {
+            this.message = '<div class="alert alert-danger m-3">Please input an address</div>';
+            return;
+          }
+
+
+
+
+          if (this.address) {
+            // button state
+            obj.disabled = true
+            document.getElementById("button-loading").style.display = 'block';
+            const payload = {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ recaptchaResponse })
+            }
+
+
+            fetch(`/send/${this.chain}/${this.address}`, payload).then(response => response.json()).then(data => {
+              if (this.siteKey)
+                grecaptcha.reset();
+              // button state
+              obj.disabled = false
+              document.getElementById("button-loading").style.display = 'none';
+              // show result
+              this.message = `
+                  <div class="alert alert-${data.result.code === 0 ? 'success' : 'danger'} alert-dismissible show fade mt-2" role="alert">
+                      <li>${data.result.code === 0 ? 'Token sent' : 'Request failed'}</li>
+                      <textarea class="form-control mt-1" rows="5" style="background-color:transparent">${JSON.stringify(data, null, 2)}</textarea>
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                  `
+            });
+          }
+        }
+      }
+    }).mount('#app')
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3"
+    crossorigin="anonymous"></script>
+  <script>
+  </script>
+</body>
+
+</html>

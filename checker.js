@@ -34,6 +34,31 @@ export class FrequencyChecker {
         return chainLimit ? this.check(address, chainLimit.limit.address ) : Promise.resolve(false)
     }
 
+    async checkPOW(nonce) {
+        return new Promise((resolve) => {
+            this.db.get(nonce, function (err, value) {
+                const now = Date.now()
+                if (err || !value) {
+                    //console.log(nonce, value);
+                    resolve(undefined);
+                } else {
+                    //console.log(nonce, value);
+                    resolve(value);
+                }
+            });
+        })
+    }
+
+    async remove(key) {
+        const db = this.db
+        const entry = await db.get(key);
+        if(entry) {
+            await db.del(key);
+        } else {
+            console.log(`${key} key not found. Cannot remove.`);
+        }
+    }
+
     async update(key) {
         const db = this.db
         db.get(key, function (err, history) {
