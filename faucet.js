@@ -115,7 +115,7 @@ app.post('/send/:chain/:address', async (req, res) => {
    
     if(!isCaptchaValid)
     {
-      res.send({ result: "CAPTCHA verification failed" });
+      res.status(400).send({ result: "CAPTCHA verification failed" });
       return;
     }
   }
@@ -131,22 +131,22 @@ app.post('/send/:chain/:address', async (req, res) => {
             checker.update(address)
             res.send({ result: ret })
           }).catch(err => {
-            res.send({ result: `err: ${err}` })
+            res.status(400).send({ result: `err: ${err}` })
           });
         } else {
-          res.send({ result: "You requested too often" })
+          res.status(429).send({ result: "You requested too often" })
         }
       } else {
-        res.send({ result: `Address [${address}] is not supported.` })
+        res.status(400).send({ result: `Address [${address}] is not supported.` })
       }
     } catch (err) {
       console.error(err);
-      res.send({ result: 'Failed, Please contact to admin.' })
+      res.status(500).send({ result: 'Failed, Please contact to admin.' })
     }
 
   } else {
     // send result
-    res.send({ result: 'address is required' });
+    res.status(400).send({ result: 'address is required' });
   }
 })
 
