@@ -33,6 +33,10 @@ v16.15.0
         "siteKey": "<<INSERT SITE KEY>>", //shared with the user
         "siteSecret": "<<INSERT SITE SECRET>>" //not shared with the user. Server side only.
     },
+    "pow": { // proof-of-work 
+        "enabled": true,
+        "difficulty": 6
+    },
     "sender": {
         "mnemonic": "surround miss nominee dream gap cross assault thank captain prosper drop duty group candy wealth weather scale put",
         "option": {
@@ -111,3 +115,18 @@ export default {
     },
 ```
  
+# Enable Proof-of-Work
+The faucet has a simple implementation of a proof-of-work challenge to prevent abuse of the faucet.
+
+To enable pow protection add the following to section to the config.js file.
+> The difficulty is how many 0's the hash needs to start with. On a Macbook Pro M1, difficulty 6 typically takes around 20-80 seconds.
+```
+export default {
+    ... // existing config
+    pow: {
+        enabled: true,
+        difficulty: 6
+    },
+```
+
+The nonce is saved to the database, when the nonce is verified it is removed from the database, the serverside will also perform a timestamp check. The time window is dynamically calculated based on the difficulty factor.
