@@ -34,14 +34,16 @@ const logger = {
   }
 };
 
+const transactionQueue = [];
+let isProcessing = false;
+const checker = new FrequencyChecker(conf)
+
 // load config
 logger.info("loaded config: ", conf);
 
 const app = express()
 
 app.use(express.json());
-
-const checker = new FrequencyChecker(conf)
 
 app.get('/', (req, res) => {
   res.sendFile(path.resolve('./index.html'));
@@ -167,13 +169,17 @@ app.post('/send/:chain/:address', async (req, res) => {
       const chainConf = conf.blockchains.find(x => x.name === chain)
       if (chainConf && (address.startsWith(chainConf.sender.option.prefix) || address.startsWith('0x'))) {
         if (await checker.checkAddress(address, chain) && await checker.checkIp(`${chain}${ip}`, chain)) {
-          checker.update(`${chain}${ip}`) // get ::1 on localhost
-          sendTx(address, chain).then(ret => {
-
+          enqueueTransaction(() => sendTx(address, chain))
+          .then(result => {
+            // Upsert entries for abuse check only if the send is successful.
+            checker.update(`${chain}${ip}`) // get ::1 on localhost
             checker.update(address)
-            res.send({ result: ret })
-          }).catch(err => {
-            res.status(400).send({ result: `err: ${err}` })
+
+            res.send({ result });
+          })
+          .catch(err => {
+              console.error("Failed to send transaction: ", err);
+              res.status(500).send({ result: `Error sending transaction: ${err.message}` });
           });
         } else {
           res.status(429).send({ result: "You requested too often" })
@@ -195,6 +201,36 @@ app.post('/send/:chain/:address', async (req, res) => {
 app.listen(conf.port, () => {
   logger.info(`Faucet app listening on port ${conf.port}`)
 })
+
+/* -----------------------------------------------------------------
+                  FIFO Processing of Send Requests 
+   -----------------------------------------------------------------*/
+   async function processQueue() {
+    if (isProcessing || transactionQueue.length === 0) {
+        return;
+    }
+  
+    isProcessing = true;
+    const { transactionFunc, resolve, reject } = transactionQueue.shift();
+  
+    try {
+        const result = await transactionFunc();
+        resolve(result);
+    } catch (error) {
+        reject(error);
+    } finally {
+        isProcessing = false;
+        processQueue(); // Check the queue for the next item
+    }
+  }
+  
+  function enqueueTransaction(transactionFunc) {
+    return new Promise((resolve, reject) => {
+        transactionQueue.push({ transactionFunc, resolve, reject });
+        processQueue();
+    });
+  }
+  
 
 async function verifyRecaptcha(recaptchaResponse, secretKey) {
   const url = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptchaResponse}`;
