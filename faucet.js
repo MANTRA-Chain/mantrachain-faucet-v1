@@ -157,7 +157,7 @@ function createFaucet(config)
       const solution = req.body?.solution;
       const timestamp = req.body?.timestamp;
 
-      const verified = await verifyPOW(checker, ßnonce, timestamp, solution);
+      const verified = await verifyPOW(checker, nonce, timestamp, solution);
       if (!verified) {
 
         res.status(404).send({ result: "POW Challenge was not solved or incorrect." });
