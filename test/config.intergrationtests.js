@@ -8,18 +8,28 @@ export default {
     project: {
         name: "Mantrachain",
         logo: "",
-        deployer: `<a href="#">Limechain</a>`
+        deployer: `<a href="#">Limechain</a>`,
+    },
+    captcha:
+    {
+        enabled: false,
+        siteKey: "6Ldz38IpAAAAAAvHwzJa8UjnsYND9EKSDS-j9vuY",
+        siteSecret: "6Ldz38IpAAAAAG2OjztKp5twAStcwUyTGyZQMEzM" //this is not secure.
+    },
+    pow: {
+        enabled: false,
+        difficulty: 4
     },
     blockchains: [
         {
-            name: "mantrachain-9001",
+            name: "mantrachain-devnet-9001",
             endpoint: {
                 // make sure that CORS is enabled in rpc section in config.toml
                 // cors_allowed_origins = ["*"]
-                rpc_endpoint: " http://35.192.223.187:26657",
+                rpc_endpoint: "https://dev-chain.mantra.finance:26657/",
             },
             sender: {
-                mnemonic: "beauty genre icon salmon receive year unique butter noble bench abandon acid tornado kite travel safe ocean keep enhance wife atom diesel dragon bright",
+                mnemonic: "captain roast forget tree cliff common peasant unhappy reflect hole they essence trash paper slab carpet engine exist urge bulk kite trade rocket kid",
                 option: {
                     hdPaths: [stringToPath("m/44'/118'/0'/0/0")],
                     prefix: "mantra"
@@ -27,14 +37,14 @@ export default {
             },
             tx: {
                 amount: {
-                    denom: "uaum",
-                    amount: "10000000"
+                    denom: "uom",
+                    amount: "500000"
                 },
                 fee: {
                     amount: [
                         {
-                            amount: "0",
-                            denom: "uaum"
+                            amount: "20",
+                            denom: "uom"
                         }
                     ],
                     gas: "200000"
@@ -42,7 +52,7 @@ export default {
             },
             limit: {
                 // how many times each wallet address is allowed in a window(24h)
-                address: 1,
+                address: 10,
                 // how many times each ip is allowed in a window(24h),
                 // if you use proxy, double check if the req.ip is return client's ip.
                 ip: 10

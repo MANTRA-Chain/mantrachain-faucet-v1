@@ -2,3 +2,6 @@
 /web.js
 /db
 .idea
+
+.env
+config.hongbai.js

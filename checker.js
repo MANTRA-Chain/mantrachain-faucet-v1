@@ -5,6 +5,7 @@ const WINDOW = 86400 * 1000 // milliseconds in a day
 
 export class FrequencyChecker {
     constructor(conf) {
+        console.log(conf.db);
         this.conf = conf
         this.db = new Level(conf.db.path, { valueEncoding: 'json' });
     }

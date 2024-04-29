@@ -5,8 +5,8 @@
   "description": "Faucet for Cosmos-SDK blockchains",
   "main": "faucet.js",
   "scripts": {
-    "start": "node --experimental-modules --es-module-specifier-resolution=node faucet.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node --experimental-modules --es-module-specifier-resolution=node index.js",
+    "test": "mocha --experimental-modules"
   },
   "repository": {
     "type": "git",
@@ -33,10 +33,16 @@
     "@tharsis/transactions": "^0.2.6",
     "axios": "^1.6.8",
     "bech32": "^2.0.0",
+    "dotenv": "^16.4.5",
     "ethers": "^5.7.1",
     "evmosjs": "0.3.3",
     "express": "^4.18.2",
     "level": "^8.0.0",
     "nodemodule": "^0.3.0"
+  },
+  "devDependencies": {
+    "chai": "^5.1.0",
+    "chai-http": "^4.4.0",
+    "mocha": "^10.4.0"
   }
 }
