@@ -1,13 +1,11 @@
-//import { expect, use  } from 'chai';
-import {use, expect} from 'chai';
+import { expect, use  } from 'chai';
 import chaiHttp from 'chai-http';
 import dotenv from 'dotenv'
 dotenv.config({ path: '.env.test' });
 import createFaucet from '../faucet.js'; 
 import config from './config.intergrationtests.js';
 
-let chai = use(chaiHttp);
-
+const chai = use(chaiHttp);
 
 describe('Simultaneous Requests to /send', function() {
     it('should handle three simultaneous requests correctly', function(done) {
