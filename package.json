@@ -5,6 +5,7 @@
   "description": "Faucet for Cosmos-SDK blockchains",
   "main": "faucet.js",
   "scripts": {
+    "discord:register": "node commands.js",
     "start": "node --experimental-modules --es-module-specifier-resolution=node index.js",
     "test": "mocha --experimental-modules"
   },
@@ -33,6 +34,7 @@
     "@tharsis/transactions": "^0.2.6",
     "axios": "^1.6.8",
     "bech32": "^2.0.0",
+    "discord-interactions": "^3.4.0",
     "dotenv": "^16.4.5",
     "ethers": "^5.7.1",
     "evmosjs": "0.3.3",

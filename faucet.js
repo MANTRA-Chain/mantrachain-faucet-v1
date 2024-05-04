@@ -1,7 +1,7 @@
 
 import express from 'express';
 import crypto from 'crypto';
-
+import { verifyKey, verifyKeyMiddleware } from 'discord-interactions';
 import * as path from 'path'
 import axios from 'axios';
 import { Wallet } from '@ethersproject/wallet'
@@ -21,6 +21,14 @@ import { bech32 } from 'bech32';
 import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
 import { SigningStargateClient } from "@cosmjs/stargate";
 import { FrequencyChecker } from './checker.js';
+import {
+  InteractionType,
+  InteractionResponseType,
+  InteractionResponseFlags,
+  MessageComponentTypes,
+  ButtonStyleTypes,
+} from 'discord-interactions';
+import { DiscordRequest, REJECT_EMOJI } from './utils.js';
 
 const logger = {
   info: (message, params) => {
@@ -36,8 +44,7 @@ let isProcessing = false;
 
 let conf = {};
 
-function createFaucet(config)
-{
+function createFaucet(config) {
   conf = config;
   // load config
   logger.info(`Config:`, conf);
@@ -46,10 +53,133 @@ function createFaucet(config)
 
   const app = express()
 
+  if (conf.discord && conf.discord.enabled) {
+
+    /* IMPORTANT NOTE
+    * Due to time constraints this function only supports sending tokens to a the first
+    * registered blockchain in the array. We may update this in the future.
+    */
+    
+    app.post( 
+      '/interactions', 
+      verifyKeyMiddleware(conf.discord.publicKey), 
+      async (req, res) => {
+
+      const message = req.body;
+
+      if(!message.type || !message.data ) {
+        return res.status(400).send({result: "invalid request"});
+      }
+
+      /**
+       * Handle verification requests
+       */
+      if (message.type === InteractionType.PING) {
+        return res.send({ type: InteractionResponseType.PONG });
+      }
+
+      if (message.type === InteractionType.APPLICATION_COMMAND) {
+        const name  = message.data.name || "help";
+
+        if (name === 'request') {
+         
+          return res.send({
+            type: InteractionResponseType.MODAL,
+            data: {
+              custom_id: 'requestModal',
+              title: 'Request Tokens',
+              components: [{
+                type: 1,
+                components: [{
+                  type: 4,
+                  custom_id: 'walletAddress',
+                  style: 1,
+                  label: 'Enter your wallet address',
+                  required: true,
+                  "min_length": 40,
+                  "max_length": 50,
+                  placeholder: 'mantra1f088a52skn4t7lk8uhpq3nurtv6d7xjmuza0l0'
+                }]
+              }]
+            }
+          });
+
+          // Send a message into the channel where command was triggered from
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: 'hello world ',
+            },
+          });
+        }
+        else {
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: 'Invalid command. Sending Help.',
+            },
+          });
+        }
+      }
+      else if (message.type === InteractionType.MODAL_SUBMIT) {
+        if (message.data.custom_id === 'requestModal') {
+          const walletAddress = message.data.components[0].components[0].value;
+          const chain = conf.blockchains[0].name; // see Important note above.
+          const userId = message.member.user.id;
+          const messageEndpoint = `channels/${message.channel_id}/messages`
+
+          logger.info(`Discord Token Request from ${message.member.user.username} (${message.member.user.id}) for wallet ${walletAddress}`);
+
+          if (await checker.checkAddress(walletAddress, chain) && await checker.checkAddress(userId, chain)) {
+
+            enqueueTransaction(() => sendTx(walletAddress, chain))
+              .then(async (result) => {
+
+                checker.update(userId)
+                checker.update(walletAddress)
+                
+                await DiscordRequest(conf, messageEndpoint, { method: 'POST', body: {content: `Hey <@${userId}> 👋, we've sent you some tokens! [Check them here](${conf.discord.explorer}/accounts/${walletAddress})`} });
+     
+              })
+              .catch(err => {
+                console.error("Failed to send transaction: ", err);
+                                
+                DiscordRequest(conf, messageEndpoint, { method: 'POST', body: {content: `Hey <@${userId}> 👋, Sorry something went wrong sending your tokens. You can try again at anytime.`} });
+     
+              });
+
+            // Respond to the modal submit interaction
+           return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: `Request received for wallet: ${walletAddress}. Your tokens will be sent shortly.`,
+              flags: InteractionResponseFlags.EPHEMERAL // Make the response ephemeral (only visible to the user)
+            }
+          });
+
+          } else {
+            res.send({
+              type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+              data: {
+                content: `${REJECT_EMOJI} You have requested too often. Please try again later.`,
+                flags: InteractionResponseFlags.EPHEMERAL // Make the response ephemeral (only visible to the user)
+              }
+            });
+          }    
+        }
+      }
+      else {
+        return res.status(400).send();
+      }
+
+    });
+  }
+
+
   app.use(express.json());
 
   app.get('/', (req, res) => {
-    res.sendFile(path.resolve('./index.html'));
+    res.sendFile(path.resolve(conf.web && conf.web.home ? conf.web.home : './index.html'));
   })
   app.get('/powWorker.js', (req, res) => {
     res.sendFile(path.resolve('./powWorker.js'));
@@ -75,6 +205,8 @@ function createFaucet(config)
     const project = conf.project
     project.sample = sample
     project.blockchains = conf.blockchains.map(x => x.name)
+    project.web2enabled = conf.web2 && conf.web2.enabled
+    project.discordInvite = conf.discord && conf.discord.enabled ? conf.discord.discordInvite : ''
 
     if (conf.captcha && conf.captcha.enabled)
       project.siteKey = conf.captcha.siteKey;
@@ -116,93 +248,98 @@ function createFaucet(config)
   })
 
 
-  app.get('/pow-challenge', async (req, res) => {
-    if (conf.pow && conf.pow.enabled) {
-      const nonce = crypto.randomBytes(16).toString('hex'); // Generate a random nonce
-      const timestamp = Date.now();
-      await checker.update(nonce);
-      res.json({ nonce, timestamp, difficulty: conf.pow.difficulty });
-    }
-    else {
-      res.status(200).json({ result: "disabled" });
-    }
-  });
 
-
-  app.post('/send/:chain/:address', async (req, res) => {
-    const { chain, address } = req.params;
-    const ip = req.headers['x-real-ip'] || req.headers['X-Real-IP'] || req.headers['X-Forwarded-For'] || req.ip
-    logger.info(`Request for ${chain} tokens to ${address} from IP ${ip}`);
-
-    if (conf.captcha && conf.captcha.enabled) {
-
-      let isCaptchaValid = false;
-
-      try {
-        const recaptchaResponse = req.body?.recaptchaResponse;
-        isCaptchaValid = await verifyRecaptcha(recaptchaResponse, conf.captcha.siteSecret);
+  if (conf.pow && conf.pow.enabled) {
+    app.get('/pow-challenge', async (req, res) => {
+      if (conf.pow && conf.pow.enabled) {
+        const nonce = crypto.randomBytes(16).toString('hex'); // Generate a random nonce
+        const timestamp = Date.now();
+        await checker.update(nonce);
+        res.json({ nonce, timestamp, difficulty: conf.pow.difficulty });
       }
-      catch {
-        logger.error(`Recapture was not valid for request from ${address} from IP ${ip}`);
+      else {
+        res.status(200).json({ result: "disabled" });
       }
+    });
+  }
 
-      if (!isCaptchaValid) {
-        res.status(400).send({ result: "CAPTCHA verification failed" })
-        return;
-      }
-    }
+  if (conf.web2 && conf.web2.enabled) {
+    app.post('/send/:chain/:address', async (req, res) => {
+      const { chain, address } = req.params;
+      const ip = req.headers['x-real-ip'] || req.headers['X-Real-IP'] || req.headers['X-Forwarded-For'] || req.ip
+      logger.info(`Request for ${chain} tokens to ${address} from IP ${ip}`);
 
-    if (conf.pow && conf.pow.enabled) {
-      const nonce = req.body?.nonce;
-      const solution = req.body?.solution;
-      const timestamp = req.body?.timestamp;
+      if (conf.captcha && conf.captcha.enabled) {
 
-      const verified = await verifyPOW(checker, nonce, timestamp, solution);
-      if (!verified) {
+        let isCaptchaValid = false;
 
-        res.status(404).send({ result: "POW Challenge was not solved or incorrect." });
-        return;
-      }
-    }
-
-    if (chain || address) {
-      try {
-        const chainConf = conf.blockchains.find(x => x.name === chain)
-        if (chainConf && (address.startsWith(chainConf.sender.option.prefix) || address.startsWith('0x'))) {
-          if (await checker.checkAddress(address, chain) && await checker.checkIp(`${chain}${ip}`, chain)) {
-            
-            enqueueTransaction(() => sendTx(address, chain))
-              .then(result => {
-               
-                // Upsert entries for abuse check only if the send is successful.
-                checker.update(`${chain}${ip}`) // get ::1 on localhost
-                checker.update(address)
-
-                res.send({ result });
-              })
-              .catch(err => {
-                console.error("Failed to send transaction: ", err);
-                res.status(500).send({ result: `Error sending transaction: ${err.message}` });
-              });
-          } else {
-            res.status(429).send({ result: "You requested too often" })
-          }
-        } else {
-          logger.error($`Bad request for chain ${chain} or address ${address}`);
-          res.status(400).send({ result: `Address [${address}] is not supported.` })
+        try {
+          const recaptchaResponse = req.body?.recaptchaResponse;
+          isCaptchaValid = await verifyRecaptcha(recaptchaResponse, conf.captcha.siteSecret);
         }
-      } catch (err) {
-        logger.error(err);
-        res.status(500).send({ result: 'Failed, Please contact to admin.' })
+        catch {
+          logger.error(`Recapture was not valid for request from ${address} from IP ${ip}`);
+        }
+
+        if (!isCaptchaValid) {
+          res.status(400).send({ result: "CAPTCHA verification failed" })
+          return;
+        }
       }
 
-    } else {
-      // send result
-      res.status(400).send({ result: 'address is required' });
-    }
-  })
+      if (conf.pow && conf.pow.enabled) {
+        const nonce = req.body?.nonce;
+        const solution = req.body?.solution;
+        const timestamp = req.body?.timestamp;
+
+        const verified = await verifyPOW(checker, nonce, timestamp, solution);
+        if (!verified) {
+
+          res.status(404).send({ result: "POW Challenge was not solved or incorrect." });
+          return;
+        }
+      }
+
+      if (chain || address) {
+        try {
+          const chainConf = conf.blockchains.find(x => x.name === chain)
+          if (chainConf && (address.startsWith(chainConf.sender.option.prefix) || address.startsWith('0x'))) {
+            if (await checker.checkAddress(address, chain) && await checker.checkIp(`${chain}${ip}`, chain)) {
+
+              enqueueTransaction(() => sendTx(address, chain))
+                .then(result => {
+
+                  // Upsert entries for abuse check only if the send is successful.
+                  checker.update(`${chain}${ip}`) // get ::1 on localhost
+                  checker.update(address)
+
+                  res.send({ result });
+                })
+                .catch(err => {
+                  console.error("Failed to send transaction: ", err);
+                  res.status(500).send({ result: `Error sending transaction: ${err.message}` });
+                });
+            } else {
+              res.status(429).send({ result: "You requested too often" })
+            }
+          } else {
+            logger.error($`Bad request for chain ${chain} or address ${address}`);
+            res.status(400).send({ result: `Address [${address}] is not supported.` })
+          }
+        } catch (err) {
+          logger.error(err);
+          res.status(500).send({ result: 'Failed, Please contact to admin.' })
+        }
+
+      } else {
+        // send result
+        res.status(400).send({ result: 'address is required' });
+      }
+    })
+  }
 
   return app;
+
 }
 
 /* -----------------------------------------------------------------
@@ -389,4 +526,4 @@ function estimateTime() {
   return (attemptsNeeded / 90000) * 1000; //milliseconds
 }
 
-export default createFaucet ;
+export default createFaucet;

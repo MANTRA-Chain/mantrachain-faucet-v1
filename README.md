@@ -130,3 +130,32 @@ export default {
 ```
 
 The nonce is saved to the database, when the nonce is verified it is removed from the database, the serverside will also perform a timestamp check. The time window is dynamically calculated based on the difficulty factor.
+
+# Enable Web2 Requests
+The faucet can allow "web2" requesting from a browser and via the `/send` api endpoint. To enable or disable alter the following section in the config file:
+```
+export default {
+        ... // existing config
+    web2: {
+        enabled: true,
+        home: './index.html'
+    },
+```
+
+# Enable Discord bot 
+The faucet supports requests to be received via a discord channel. You will need to setup an App and bot in Discord from the developers portal. Check out [Getting Started](https://discord.com/developers/docs/quick-start/getting-started) for more info.
+
+Below is the required config section:
+
+```
+export default {
+        ... // existing config
+    discord: {
+        enabled: true,
+        appId: "9876543211234567890",
+        discordToken: "SECRET TOKEN",
+        publicKey: "PUBLIC KEY PUBLIC KEY PUBLIC KEY",
+        discordInvite: "https://discord.gg/gfks4TwAJV",
+        explorer: "https://explorer.hongbai.mantrachain.io/mantrachain"
+    },
+```

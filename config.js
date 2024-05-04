@@ -10,6 +10,10 @@ export default {
         logo: "",
         deployer: `<a href="#">Limechain</a>`
     },
+    web2: {
+        enabled: true,
+        home: './index.html'
+    },
     blockchains: [
         {
             name: "mantrachain-9001",
