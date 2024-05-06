@@ -1,14 +1,9 @@
 
 import { Wallet } from '@ethersproject/wallet'
 import { bech32 } from 'bech32';
-import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
 import { SigningStargateClient } from "@cosmjs/stargate";
-
-
-// const transactionQueue = [];
-// let isProcessing = false;
-// let config = {};
-// let logger = {};
+import { DirectSecp256k1HdWallet, coins } from '@cosmjs/proto-signing';
+import { TxBody, TxRaw } from 'cosmjs-types/cosmos/tx/v1beta1/tx.js';
 
 export class TransactionManager {
 
@@ -17,6 +12,9 @@ export class TransactionManager {
     this.logger = logger_;
     this.transactionQueue = [];
     this.isProcessing = false;
+    this._accounts = new Map();
+    this._clients = new Map();
+    this._wallets = new Map();
   }
 
   enqueueSend(recipient, chain) {
@@ -61,24 +59,121 @@ export class TransactionManager {
     });
   }
 
-  async sendCosmosTx(recipient, chain) {
-    // const mnemonic = "surround miss nominee dream gap cross assault thank captain prosper drop duty group candy wealth weather scale put";
-    const chainConf = this.config.blockchains.find(x => x.name === chain)
-    if (chainConf) {
+
+  async getConnectedClient(chainConf) {
+    if (!this._clients.get(chainConf.name)) {
+      const faucet = await this.getCosmosFaucetWalletAndAccount(chainConf);
+      const rpcEndpoint = chainConf.endpoint.rpc_endpoint;
+      const client = await SigningStargateClient.connectWithSigner(rpcEndpoint, faucet.wallet);
+
+      const accountData = await this.getCosmosAccountData(client, faucet.firstAccount.address);
+
+
+      this._clients.set(chainConf.name, client);
+    }
+    return this._clients.get(chainConf.name);
+  }
+
+  async getCosmosAccountData(client, address) {
+    let acc = this._accounts.get(address);
+    if (!acc) {
+      try {
+        const account = await client.getAccount(address);
+        if (!account) {
+          throw new Error("Account not found");
+        }
+        acc = {
+          accountNumber: account.accountNumber,
+          sequence: account.sequence
+        };
+        this._accounts.set(address, acc);
+      } catch (error) {
+        this.logger.error("Failed to retrieve account data:", error);
+        throw error;
+      }
+    }
+    return acc;
+  }
+
+  async getCosmosFaucetWalletAndAccount(chainConf) {
+    if (!this._wallets.get(chainConf.name)) {
       const wallet = await DirectSecp256k1HdWallet.fromMnemonic(chainConf.sender.mnemonic, chainConf.sender.option);
       const [firstAccount] = await wallet.getAccounts();
 
-      const rpcEndpoint = chainConf.endpoint.rpc_endpoint;
-      const client = await SigningStargateClient.connectWithSigner(rpcEndpoint, wallet);
-      client.getBalance
+      this._wallets.set(chainConf.name, { wallet, firstAccount });
+    }
 
-      // const recipient = "cosmos1xv9tklw7d82sezh9haa573wufgy59vmwe6xxe5";
+    return this._wallets.get(chainConf.name);
+  }
+
+  incrementNonce(address) {
+    const account = this._accounts.get(address);
+    account.sequence = account.sequence + 1;
+    this._accounts.set(address, account); //do i need to set this again?
+    return account;
+  }
+
+  getCosmosFee(chainConf) {
+    return chainConf.tx.fee;
+    return {
+      amount: coins(chainConf.tx.fee.amount[0].amount, chainConf.tx.fee.amount.denom),
+      gasLimit: chainConf.tx.fee.gas
+    };
+  }
+
+  getCosmosSendMessage(chainConf, account, recipient) {
+    return {
+      typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+      value: {
+        fromAddress: account.address,
+        toAddress: recipient,
+        amount: coins(chainConf.tx.amount.amount, chainConf.tx.amount.denom)
+      }
+    };
+  }
+
+  async sendRawCosmosTx(recipient, chain) {
+    let result;
+    const chainConf = this.config.blockchains.find(x => x.name === chain)
+    if (chainConf) {
+      const client = await this.getConnectedClient(chainConf);
+      const { wallet, firstAccount } = await this.getCosmosFaucetWalletAndAccount(chainConf);
+
+      //const {accountNumber, sequence} =
+      const account = await this.getCosmosAccountData(client, firstAccount.address);
+
+
+      const fee = this.getCosmosFee(chainConf);
+
+      const msgSend = this.getCosmosSendMessage(chainConf, firstAccount, recipient);
+
+      const txBody = TxBody.fromPartial({
+        messages: [client.registry.encode(msgSend)],
+      });
+
+      const memo = "Coin from Faucet";
+      const signerData = { accountNumber: account.accountNumber, sequence: account.sequence, chainId: chain };
+      const txRaw = await client.sign(firstAccount.address, [msgSend], fee, memo, signerData, undefined);
+      const txBytes = TxRaw.encode(txRaw).finish();
+      this.incrementNonce(firstAccount.address);
+      return client.broadcastTxSync(txBytes);
+    }
+    return result;
+
+  }
+
+  async sendCosmosTx(recipient, chain) {
+
+    const chainConf = this.config.blockchains.find(x => x.name === chain)
+    if (chainConf) {
+      const client = await this.getConnectedClient(chainConf);
+      const faucet = await this.getCosmosFaucetWalletAndAccount(chainConf);
+
       const amount = chainConf.tx.amount;
       const fee = chainConf.tx.fee;
 
-      return client.sendTokens(firstAccount.address, recipient, [amount], fee);
+      return client.sendTokens(faucet.firstAccount.address, recipient, [amount], fee);
     }
-    throw new Error(`Blockchain Config [${chain}] not found`)
   }
 
   async sendEvmosTx(recipient, chain) {
@@ -131,7 +226,7 @@ export class TransactionManager {
     if (chainConf.type === 'Ethermint') {
       return this.sendEvmosTx(recipient, chain)
     }
-    return this.sendCosmosTx(recipient, chain)
+    return this.sendRawCosmosTx(recipient, chain)
   }
 
 }
