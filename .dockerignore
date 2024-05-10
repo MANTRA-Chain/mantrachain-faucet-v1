@@ -1,0 +1,15 @@
+.dockerignore
+node_modules
+npm - debug.log
+Dockerfile
+.git
+.gitignore
+.npmrc
+.devcontainer
+.github
+.trash
+db
+test
+config*.js
+.env
+gha-creds-*.json

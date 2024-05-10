@@ -40,6 +40,8 @@ export class TransactionManager {
       resolve(result);
     } catch (error) {
       this.logger.error("Error processing request", error);
+      //
+      await this.getCosmosAccountData()
       reject(error);
     } finally {
       this.isProcessing = false;
@@ -74,9 +76,9 @@ export class TransactionManager {
     return this._clients.get(chainConf.name);
   }
 
-  async getCosmosAccountData(client, address) {
+  async getCosmosAccountData(client, address, forceRefresh) {
     let acc = this._accounts.get(address);
-    if (!acc) {
+    if (!acc || forceRefresh) {
       try {
         const account = await client.getAccount(address);
         if (!account) {
@@ -133,7 +135,7 @@ export class TransactionManager {
   }
 
   async sendRawCosmosTx(recipient, chain) {
-    let result;
+    let txResult ={ code: 999, transactionHash: "", message: "invalid blockchain" };
     const chainConf = this.config.blockchains.find(x => x.name === chain)
     if (chainConf) {
       const client = await this.getConnectedClient(chainConf);
@@ -141,7 +143,6 @@ export class TransactionManager {
 
       //const {accountNumber, sequence} =
       const account = await this.getCosmosAccountData(client, firstAccount.address);
-
 
       const fee = this.getCosmosFee(chainConf);
 
@@ -155,10 +156,26 @@ export class TransactionManager {
       const signerData = { accountNumber: account.accountNumber, sequence: account.sequence, chainId: chain };
       const txRaw = await client.sign(firstAccount.address, [msgSend], fee, memo, signerData, undefined);
       const txBytes = TxRaw.encode(txRaw).finish();
-      this.incrementNonce(firstAccount.address);
-      return client.broadcastTxSync(txBytes);
+      
+      try{
+       const hash = await client.broadcastTxSync(txBytes);
+       txResult = {
+        code: 0,
+        transactionHash: hash,
+        message: "Transaction successfully broadcast."
+      }
+       this.incrementNonce(firstAccount.address); //only increment if successful
+      }
+      catch(error){
+        this.logger.error("Broadcast TX error", error);
+        txResult =
+        { 
+          code:   error.code ?? 1,
+          message: error.log
+        };
+      }
     }
-    return result;
+    return txResult;
 
   }
 

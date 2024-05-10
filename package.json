@@ -3,10 +3,10 @@
   "type": "module",
   "version": "1.0.0",
   "description": "Faucet for Cosmos-SDK blockchains",
-  "main": "faucet.js",
+  "main": "index.js",
   "scripts": {
     "discord:register": "node ./src/discord/botCommands.js",
-    "start": "node --experimental-modules --es-module-specifier-resolution=node index.js",
+    "start": "node --experimental-modules --es-module-specifier-resolution=node src/index.js",
     "test": "mocha --experimental-modules"
   },
   "repository": {

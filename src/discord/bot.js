@@ -78,9 +78,14 @@ async function processWalletRequest(walletAddress, userId, username, channelId, 
 
       transactionManager.enqueueSend(walletAddress, chain)
         .then(async (result) => {
-          checker.update(userId);
-          checker.update(walletAddress);
-          await DiscordRequest(config, messageEndpoint, { method: 'POST', body: {content: createSuccessMessage(userId, walletAddress)} });
+          if(result.code == 0) {
+            checker.update(userId);
+            checker.update(walletAddress);
+            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: {content: createSuccessMessage(userId, walletAddress)} });
+          }
+          else{
+            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: {content: createErrorMessage(userId, result.message) } });
+          }
         })
         .catch(async (err) => {
           logger.error("Failed to send transaction: ", err);        
@@ -103,8 +108,11 @@ function createSuccessMessage(userId, walletAddress) {
   return `Hey <@${userId}> 👋, we've sent you some tokens! [Check them here](${config.discord.explorer}/accounts/${walletAddress})`;
 }
 
-function createErrorMessage(userId) {
-  return `Hey <@${userId}> 👋, Sorry something went wrong sending your tokens. You can try again at anytime.`;
+function createErrorMessage(userId, errorMessage) {
+  if(!errorMessage)
+    errorMessage = "Sorry something went wrong sending your tokens. You can try again at anytime.";
+
+  return `Hey <@${userId}> 👋, Failure: ${errorMessage}`;
 }
 
 function createEphemeralResponse(message) {
