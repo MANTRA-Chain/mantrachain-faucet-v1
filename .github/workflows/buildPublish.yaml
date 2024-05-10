@@ -42,13 +42,13 @@ jobs:
       name: 'Authenticate to Google Cloud'
       uses: 'google-github-actions/auth@v2'
       with:
-        #token_format: 'access_token'
+        token_format: 'access_token'
         workload_identity_provider: 'projects/552222339090/locations/global/workloadIdentityPools/github/providers/mf-repo'
-        #service_account: 'github-actions@company-infrastructure-419201.iam.gserviceaccount.com'
+        service_account: 'github-actions@company-infrastructure-419201.iam.gserviceaccount.com'
 
-    #- name: Docker configuration
-    #  run: |-
-    #    echo ${{steps.auth.outputs.access_token}} | docker login -u oauth2accesstoken --password-stdin https://$GAR_LOCATION-docker.pkg.dev
+    - name: Docker configuration
+      run: |-
+        echo ${{steps.auth.outputs.access_token}} | docker login -u oauth2accesstoken --password-stdin https://$GAR_LOCATION-docker.pkg.dev
 
     # Build the Docker image
     - name: Build
