@@ -44,7 +44,7 @@ jobs:
       with:
         token_format: 'access_token'
         workload_identity_provider: 'projects/552222339090/locations/global/workloadIdentityPools/github/providers/mf-repo'
-        #service_account: 'github-actions@company-infrastructure-419201.iam.gserviceaccount.com'
+        service_account: 'github-actions@company-infrastructure-419201.iam.gserviceaccount.com'
 
     - name: Docker configuration
       run: |-
