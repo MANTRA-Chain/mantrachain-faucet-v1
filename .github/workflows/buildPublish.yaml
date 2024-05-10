@@ -10,7 +10,7 @@
 #
 # For more support on how to run the workflow, please visit https://github.com/google-github-actions/setup-gcloud/tree/master/example-workflows/gke-kustomize
 
-name: Build and Deploy to GKE
+name: Build and Publish to GAR
 
 on:
   pull_request:
@@ -42,6 +42,7 @@ jobs:
       name: 'Authenticate to Google Cloud'
       uses: 'google-github-actions/auth@v2'
       with:
+        token_format: 'access_token'
         workload_identity_provider: 'projects/552222339090/locations/global/workloadIdentityPools/github/providers/mf-repo'
         #service_account: 'github-actions@company-infrastructure-419201.iam.gserviceaccount.com'
 
