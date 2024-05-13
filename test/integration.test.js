@@ -1,28 +1,26 @@
-//import { expect, use  } from 'chai';
-import {use, expect} from 'chai';
+import { expect, use } from 'chai';
 import chaiHttp from 'chai-http';
 import dotenv from 'dotenv'
 dotenv.config({ path: '.env.test' });
-import createFaucet from '../faucet.js'; 
+import createFaucet from '../src/faucet.js';
 import config from './config.intergrationtests.js';
 
-let chai = use(chaiHttp);
+const chai = use(chaiHttp);
 
+describe('Simultaneous Requests to /send', function () {
+    it('should handle three simultaneous requests correctly', function (done) {
 
-describe('Simultaneous Requests to /send', function() {
-    it('should handle three simultaneous requests correctly', function(done) {
-       
         const app = createFaucet(config);  // Make sure to await the creation of the app
 
         this.timeout(60000); // Adjust timeout for potential delays in processing
-        
+
         const accounts = [
             "mantra1f088a52skn4t7lk8uhpq3nurtv6d7xjmuza0l0",
             "mantra1f088a52skn4t7lk8uhpq3nurtv6d7xjmuza0l0",
             "mantra1f088a52skn4t7lk8uhpq3nurtv6d7xjmuza0l0"
         ]
-        
-    
+
+
         // Create an array of promises for simultaneous requests
         const requests = accounts.map(id => {
             return chai.request(app)
@@ -48,7 +46,7 @@ describe('Simultaneous Requests to /send', function() {
             })
             .catch(err => {
                 done(err);
-            }).finally( () =>{
+            }).finally(() => {
                 app.close();
             });
     });

@@ -10,6 +10,18 @@ export default {
         logo: "",
         deployer: `<a href="#">Limechain</a>`
     },
+    web2: {
+        enabled: true,
+        home: './index.html'
+    },
+    discord: {
+        enabled: false,
+        appId: "",
+        discordToken: "",
+        publicKey: "",
+        discordInvite: "https://discord.gg/",
+        explorer: "https://explorer"
+    },
     blockchains: [
         {
             name: "mantrachain-9001",

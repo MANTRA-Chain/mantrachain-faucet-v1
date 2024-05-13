@@ -80,24 +80,20 @@ v16.15.0
  ```sh
  node --es-module-specifier-resolution=node faucet.js
  ```
+ or
+ ```
+ yarn start
+ ```
  
- # Test
- 
- visit http://localhost:80 
- 
- 80 is default, you can edit it in the config.json
- 
- # Donation
+# Docker
+## Build
+`docker build -t mantrachain/faucet .`
+## Run
+As the config file contains sensitive information it is not included in the docker image.
+Mount the config file in the same location as the app and set the environment variable for the config file path.
+`docker run -v $(pwd)/config.hongbai.js:/usr/src/app/config.js:ro -e CONFIG_FILE_PATH=./config.js -p 8000:8000 mantrachain/faucet`
 
-Your donation will help us make better products. Thanks in advance.
 
- - Address for ERC20: USDC, USDT, ETH
-```
-0x88BFec573Dd3E4b7d2E6BfD4D0D6B11F843F8aa1
-```
-
- - You can donate any token in the Cosmos ecosystem: [here](https://ping.pub/coffee)
- 
  
 # Enable reCaptcha
 Follow these steps to enable reCaptcha on the front and back end:
@@ -130,3 +126,32 @@ export default {
 ```
 
 The nonce is saved to the database, when the nonce is verified it is removed from the database, the serverside will also perform a timestamp check. The time window is dynamically calculated based on the difficulty factor.
+
+# Enable Web2 Requests
+The faucet can allow "web2" requesting from a browser and via the `/send` api endpoint. To enable or disable alter the following section in the config file:
+```
+export default {
+        ... // existing config
+    web2: {
+        enabled: true,
+        home: './index.html'
+    },
+```
+
+# Enable Discord bot 
+The faucet supports requests to be received via a discord channel. You will need to setup an App and bot in Discord from the developers portal. Check out [Getting Started](https://discord.com/developers/docs/quick-start/getting-started) for more info.
+
+Below is the required config section:
+
+```
+export default {
+        ... // existing config
+    discord: {
+        enabled: true,
+        appId: "9876543211234567890",
+        discordToken: "SECRET TOKEN",
+        publicKey: "PUBLIC KEY PUBLIC KEY PUBLIC KEY",
+        discordInvite: "https://discord.gg/gfks4TwAJV",
+        explorer: "https://explorer.hongbai.mantrachain.io/mantrachain"
+    },
+```

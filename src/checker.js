@@ -1,3 +1,4 @@
+
 import { Level } from "level";
 
 const WINDOW = 86400 * 1000 // milliseconds in a day
@@ -5,7 +6,6 @@ const WINDOW = 86400 * 1000 // milliseconds in a day
 
 export class FrequencyChecker {
     constructor(conf) {
-        console.log(conf.db);
         this.conf = conf
         this.db = new Level(conf.db.path, { valueEncoding: 'json' });
     }
@@ -27,12 +27,12 @@ export class FrequencyChecker {
 
     async checkIp(ip, chain) {
         const chainLimit = this.conf.blockchains.find(x => x.name === chain)
-        return chainLimit ? this.check(ip, chainLimit.limit.ip ) : Promise.resolve(false)
+        return chainLimit ? this.check(ip, chainLimit.limit.ip) : Promise.resolve(false)
     }
 
     async checkAddress(address, chain) {
         const chainLimit = this.conf.blockchains.find(x => x.name === chain)
-        return chainLimit ? this.check(address, chainLimit.limit.address ) : Promise.resolve(false)
+        return chainLimit ? this.check(address, chainLimit.limit.address) : Promise.resolve(false)
     }
 
     async checkPOW(nonce) {
@@ -53,7 +53,7 @@ export class FrequencyChecker {
     async remove(key) {
         const db = this.db
         const entry = await db.get(key);
-        if(entry) {
+        if (entry) {
             await db.del(key);
         } else {
             console.log(`${key} key not found. Cannot remove.`);
@@ -70,5 +70,9 @@ export class FrequencyChecker {
                 db.put(key, history)
             }
         });
+    }
+
+    async close() {
+        await this.db.close();
     }
 }

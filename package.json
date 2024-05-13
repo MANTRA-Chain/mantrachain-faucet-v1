@@ -3,9 +3,10 @@
   "type": "module",
   "version": "1.0.0",
   "description": "Faucet for Cosmos-SDK blockchains",
-  "main": "faucet.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node --experimental-modules --es-module-specifier-resolution=node index.js",
+    "discord:register": "node ./src/discord/botCommands.js",
+    "start": "node --experimental-modules --es-module-specifier-resolution=node src/index.js",
     "test": "mocha --experimental-modules"
   },
   "repository": {
@@ -25,14 +26,16 @@
   },
   "homepage": "https://github.com/ping-pub/faucet#readme",
   "dependencies": {
-    "@cosmjs/crypto": "^0.31",
-    "@cosmjs/proto-signing": "^0.31",
-    "@cosmjs/stargate": "^0.31",
+    "@cosmjs/crypto": "^0.32.3",
+    "@cosmjs/proto-signing": "^0.32.3",
+    "@cosmjs/stargate": "^0.32.3",
     "@ethersproject/wallet": "^5.7.0",
     "@hanchon/evmos-ts-wallet": "^0.2.0",
     "@tharsis/transactions": "^0.2.6",
     "axios": "^1.6.8",
     "bech32": "^2.0.0",
+    "cosmjs-types": "^0.9.0",
+    "discord-interactions": "^3.4.0",
     "dotenv": "^16.4.5",
     "ethers": "^5.7.1",
     "evmosjs": "0.3.3",
@@ -43,6 +46,7 @@
   "devDependencies": {
     "chai": "^5.1.0",
     "chai-http": "^4.4.0",
-    "mocha": "^10.4.0"
+    "mocha": "^10.4.0",
+    "sinon": "^17.0.1"
   }
 }

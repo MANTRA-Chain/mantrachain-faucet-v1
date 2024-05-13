@@ -8150,8 +8150,8 @@
                     <p class="text__lg center">The first RWA Layer 1 Blockchain, capable of adherence and enforcement of
                         real world regulatory requirements.</p>
                     <p class="text__lg center">Get your tokens and get started!</p>
-                    <div class="container" id="app" v-cloak>
-                        <div class="card p-3 w-100" style="background-color: #00000080;">
+                    <div class="container" id="app" v-cloak >
+                        <div class="card p-3 w-100" style="background-color: #00000080;" v-if="web2enabled">
 
                             <div class="row g-5">
                                 <div class="input-group">
@@ -8200,8 +8200,13 @@
                             </div>
                             <div id="message" v-html="message"></div>
 
-                            </main>
+                           
 
+                        </div>
+                        <div class="card p-3 w-100 text-center align-center" style="background-color: #00000080;" v-if="!web2enabled">
+                            <div>
+                            <a class="btn btn-primary text-center" v-bind:href="discordInvite">Join our Discord to get tokens!</a>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -8231,7 +8236,9 @@
                     isBusy: false,
                     progress: 0,
                     progressMessage: `Solving POW Challenge`,
-                    difficulty: 0
+                    difficulty: 0,
+                    web2enabled: false,
+                    discordInvite: ''
                 }
             },
             created() {
@@ -8241,6 +8248,9 @@
                     this.siteKey = data.siteKey
                     this.logo = data.logo
                     this.chain = data.blockchains[0]
+                    this.web2enabled = data.web2enabled
+                    this.discordInvite = data.discordInvite
+                    this.difficulty = data.difficulty
                     // this.placeholder = `Input an address (e.g.: ${data.sample[this.chain]}) to received tokens`
                     this.onChange()
                     if (data.deployer) {
@@ -8303,6 +8313,7 @@
 
                         if (!recaptchaResponse || recaptchaResponse == "") {
                             this.message = '<div class="alert alert-danger m-3">CAPTCHA verification required</div>';
+                            this.isBusy = false;
                             return;
                         }
                     }
@@ -8312,8 +8323,7 @@
                         return;
                     }
 
-                    //document.getElementById("button-loading").style.display = 'block';
-                    const { nonce, timestamp, solution, difficulty } = await this.requestPowChallengeAndSolve();
+                    const { nonce, timestamp, solution, difficulty } = this.difficulty ? await this.requestPowChallengeAndSolve() : {nonce: '', timestamp: '' , solution: '', difficulty: '' };
 
                     this.submitData(obj, nonce, timestamp, solution, recaptchaResponse);
 
@@ -8321,7 +8331,6 @@
                 async requestPowChallengeAndSolve() {
                     const response = await fetch('/pow-challenge');
                     const { nonce, timestamp, difficulty } = await response.json();
-                    this.difficulty = difficulty;
                     const solution = await this.solveChallenge(nonce, timestamp, difficulty);
                     return { nonce, timestamp, solution, difficulty };
                 },
