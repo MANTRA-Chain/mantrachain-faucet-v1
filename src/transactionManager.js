@@ -61,15 +61,46 @@ export class TransactionManager {
     });
   }
 
+  async checkAndReconnectClients(attemptReconnect) {
+    const chains = this.config.blockchains;
+    const status = [];
+    for (let i = 0; i < chains.length; i++) {
+      let latestBlock = await this.checkClientConnection(chains[i]);
 
-  async getConnectedClient(chainConf) {
-    if (!this._clients.get(chainConf.name)) {
+      if (latestBlock <= 0 && attemptReconnect) //connection has failed, attempt reconnect
+      {
+        this.logger.error(`Health Check Failed for ${chains[i].name} which returned a block of ${latestBlock}. Attempting Reconnect`);
+        await this.getConnectedClient(chains[i], true);
+        latestBlock = await this.checkClientConnection[i];
+        //only attempt once and then return the result
+      }
+
+      status.push({ chain: chains[i].name, latestBlock: latestBlock });
+    }
+
+    return status;
+  }
+
+  async checkClientConnection(chainConf) {
+    const client = await this.getConnectedClient(chainConf);
+
+    try {
+      // Attempt to get the latest block
+      const latestBlock = await client.getBlock();
+
+      return latestBlock ? latestBlock.header.height : 0;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  async getConnectedClient(chainConf, forceNewClient) {
+    if (forceNewClient || !this._clients.get(chainConf.name)) {
       const faucet = await this.getCosmosFaucetWalletAndAccount(chainConf);
       const rpcEndpoint = chainConf.endpoint.rpc_endpoint;
       const client = await SigningStargateClient.connectWithSigner(rpcEndpoint, faucet.wallet);
 
       const accountData = await this.getCosmosAccountData(client, faucet.firstAccount.address);
-
 
       this._clients.set(chainConf.name, client);
     }
@@ -135,7 +166,7 @@ export class TransactionManager {
   }
 
   async sendRawCosmosTx(recipient, chain) {
-    let txResult ={ code: 999, transactionHash: "", message: "invalid blockchain" };
+    let txResult = { code: 999, transactionHash: "", message: "invalid blockchain" };
     const chainConf = this.config.blockchains.find(x => x.name === chain)
     if (chainConf) {
       const client = await this.getConnectedClient(chainConf);
@@ -156,21 +187,21 @@ export class TransactionManager {
       const signerData = { accountNumber: account.accountNumber, sequence: account.sequence, chainId: chain };
       const txRaw = await client.sign(firstAccount.address, [msgSend], fee, memo, signerData, undefined);
       const txBytes = TxRaw.encode(txRaw).finish();
-      
-      try{
-       const hash = await client.broadcastTxSync(txBytes);
-       txResult = {
-        code: 0,
-        transactionHash: hash,
-        message: "Transaction successfully broadcast."
+
+      try {
+        const hash = await client.broadcastTxSync(txBytes);
+        txResult = {
+          code: 0,
+          transactionHash: hash,
+          message: "Transaction successfully broadcast."
+        }
+        this.incrementNonce(firstAccount.address); //only increment if successful
       }
-       this.incrementNonce(firstAccount.address); //only increment if successful
-      }
-      catch(error){
+      catch (error) {
         this.logger.error("Broadcast TX error", error);
         txResult =
-        { 
-          code:   error.code ?? 1,
+        {
+          code: error.code ?? 1,
           message: error.log
         };
       }

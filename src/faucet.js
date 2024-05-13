@@ -3,7 +3,7 @@ import express from 'express';
 import * as path from 'path';
 import { enablePOW } from './proof-of-work/pow.js';
 import { enableDiscord } from './discord/bot.js';
-import { enableBalanceApi, enableWeb2ConfigApi, enableWeb2Send } from './web2/web2.js';
+import { enableBalanceApi, enableWeb2ConfigApi, enableWeb2HealthApi, enableWeb2Send } from './web2/web2.js';
 
 function createFaucetApp(config, checker, transactionManager, logger) {
 
@@ -12,6 +12,7 @@ function createFaucetApp(config, checker, transactionManager, logger) {
 
   const app = express()
   enableWeb2ConfigApi(app, config, checker, transactionManager, logger);
+  enableWeb2HealthApi(app, config, checker, transactionManager, logger);
 
   if (config.discord && config.discord.enabled) {
     enableDiscord(app, config, checker, transactionManager, logger);
@@ -35,5 +36,7 @@ function createFaucetApp(config, checker, transactionManager, logger) {
   return app;
 
 }
+
+
 
 export default createFaucetApp;

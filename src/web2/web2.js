@@ -60,7 +60,7 @@ export function enableWeb2Send(app, config, checker, transactionManager, logger)
                 const recaptchaResponse = req.body?.recaptchaResponse;
                 isCaptchaValid = await verifyRecaptcha(recaptchaResponse, config.captcha.siteSecret, logger);
             }
-            catch(error) {
+            catch (error) {
                 logger.error(`Recapture was not valid for request from ${address} from IP ${ip}`, error);
             }
 
@@ -125,29 +125,60 @@ export function enableWeb2ConfigApi(app, config, checker, transactionManager, lo
     app.get('/config.json', async (req, res) => {
         const sample = {}
         for (let i = 0; i < config.blockchains.length; i++) {
-          const chainConf = config.blockchains[i]
-          const wallet = await DirectSecp256k1HdWallet.fromMnemonic(chainConf.sender.mnemonic, chainConf.sender.option);
-          const [firstAccount] = await wallet.getAccounts();
-          sample[chainConf.name] = firstAccount.address
-          if (chainConf.type === 'Ethermint') {
-            const wallet = await fromMnemonicEthermint(chainConf.sender.mnemonic, chainConf.sender.option);
-            sample[chainConf.name] = wallet.address;
-          }
-    
-          const wallet2 = Wallet.fromMnemonic(chainConf.sender.mnemonic, pathToString(chainConf.sender.option.hdPaths[0]));
-          logger.info('address:', sample[chainConf.name], wallet2.address);
+            const chainConf = config.blockchains[i]
+            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(chainConf.sender.mnemonic, chainConf.sender.option);
+            const [firstAccount] = await wallet.getAccounts();
+            sample[chainConf.name] = firstAccount.address
+            if (chainConf.type === 'Ethermint') {
+                const wallet = await fromMnemonicEthermint(chainConf.sender.mnemonic, chainConf.sender.option);
+                sample[chainConf.name] = wallet.address;
+            }
+
+            const wallet2 = Wallet.fromMnemonic(chainConf.sender.mnemonic, pathToString(chainConf.sender.option.hdPaths[0]));
+            logger.info('address:', sample[chainConf.name], wallet2.address);
         }
-    
+
         const project = config.project
         project.sample = sample
         project.blockchains = config.blockchains.map(x => x.name)
         project.web2enabled = config.web2 && config.web2.enabled
         project.discordInvite = config.discord && config.discord.enabled ? config.discord.discordInvite : ''
         project.difficulty = config.pow && config.pow.enabled ? config.pow.difficulty : 0;
-    
+
         if (config.captcha && config.captcha.enabled)
-          project.siteKey = config.captcha.siteKey;
-    
+            project.siteKey = config.captcha.siteKey;
+
         res.send(project);
-      })
+    })
+}
+
+export function enableWeb2HealthApi(app, config, checker, transactionManager, logger) {
+    app.get('/healthz', async (req, res) => {
+        // Perform necessary health checks
+        let clients = await transactionManager.checkAndReconnectClients(true);
+        let message = 'OK';
+
+        for (let i = 0; i < clients.length; i++) {
+            if (!clients[i].latestBlock || clients[i].latestBlock <= 0) {
+                message = 'DEGRADED';
+            }
+        }
+
+        const healthcheck = {
+            uptime: process.uptime(),
+            message,
+            blockchains: clients,
+            timestamp: Date.now()
+        };
+
+        logger.info("[HEALTH CHECK]", healthcheck);
+
+        try {
+            // Optionally include further checks and throw errors if any checks fail
+            res.send(healthcheck);
+        } catch (e) {
+            healthcheck.message = 'ERROR';
+            res.status(503).send(healthcheck);
+        }
+    })
 }
