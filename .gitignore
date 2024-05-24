@@ -5,7 +5,10 @@
 
 .env
 config.hongbai.js
+config.dev.*
 .trash
 
 # Ignore generated credentials from google-github-actions/auth
 gha-creds-*.json
+
+.DS_STORE

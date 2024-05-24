@@ -1,4 +1,4 @@
-# faucet
+# Faucet
 
 General Faucet for Cosmos SDK testnet. There are two versions: [Cosmos](https://github.com/ping.pub/faucet) and [Evmos](https://github.com/ping-pub/faucet/tree/evmos)
 
