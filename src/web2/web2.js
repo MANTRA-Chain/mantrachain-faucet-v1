@@ -93,9 +93,10 @@ export function enableWeb2Send(app, config, checker, transactionManager, logger)
                             .then(result => {
 
                                 // Upsert entries for abuse check only if the send is successful.
-                                checker.update(`${chain}${ip}`) // get ::1 on localhost
-                                checker.update(address)
-
+                                if (result && result.code == 0) {
+                                    checker.update(`${chain}${ip}`) // get ::1 on localhost
+                                    checker.update(address)
+                                }
                                 res.send({ result });
                             })
                             .catch(err => {
