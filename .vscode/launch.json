@@ -12,7 +12,7 @@
                 "<node_internals>/**"
             ],
             "env": {
-                "CONFIG_FILE_PATH": "../config.hongbai.js"
+                "CONFIG_FILE_PATH": "../config.dev.hongbai.js"
             },
             "program": "${workspaceFolder}/src/index.js"
         }

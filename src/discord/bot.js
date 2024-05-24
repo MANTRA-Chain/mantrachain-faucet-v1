@@ -8,6 +8,7 @@ import {
   verifyKeyMiddleware
 } from 'discord-interactions';
 import { REJECT_EMOJI, DiscordRequest } from './utils.js';
+import { validateMantraAccount } from './validation.js';
 
 const REQUEST_RESPONSE_MESSAGE = {
   type: InteractionResponseType.MODAL,
@@ -78,18 +79,18 @@ async function processWalletRequest(walletAddress, userId, username, channelId, 
 
       transactionManager.enqueueSend(walletAddress, chain)
         .then(async (result) => {
-          if(result.code == 0) {
+          if (result.code == 0) {
             checker.update(userId);
             checker.update(walletAddress);
-            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: {content: createSuccessMessage(userId, walletAddress)} });
+            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createSuccessMessage(userId, walletAddress) } });
           }
-          else{
-            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: {content: createErrorMessage(userId, result.message) } });
+          else {
+            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createErrorMessage(userId, result.message) } });
           }
         })
         .catch(async (err) => {
-          logger.error("Failed to send transaction: ", err);        
-          await DiscordRequest(config, messageEndpoint, { method: 'POST', body: {content: createErrorMessage(userId) } });
+          logger.error("Failed to send transaction: ", err);
+          await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createErrorMessage(userId) } });
         });
     } else {
       return createEphemeralResponse(`You have requested too often. Please try again later.`);
@@ -109,7 +110,7 @@ function createSuccessMessage(userId, walletAddress) {
 }
 
 function createErrorMessage(userId, errorMessage) {
-  if(!errorMessage)
+  if (!errorMessage)
     errorMessage = "Sorry something went wrong sending your tokens. You can try again at anytime.";
 
   return `Hey <@${userId}> 👋, Failure: ${errorMessage}`;
@@ -132,19 +133,20 @@ function sendErrorResponse(res, message) {
 let config, checker, transactionManager, logger;
 
 export function enableDiscord(app, config_, checker_, transactionManager_, logger_) {
-   /* IMPORTANT NOTE
-    * Due to time constraints this function only supports sending tokens to a the first
-    * registered blockchain in the array. We may update this in the future.
-    */
-   
-   config = config_; 
-   checker = checker_; 
-   transactionManager = transactionManager_;
-   logger = logger_;
+  /* IMPORTANT NOTE
+   * Due to time constraints this function only supports sending tokens to a the first
+   * registered blockchain in the array. We may update this in the future.
+   */
 
-   app.post( 
-    '/interactions', 
-    verifyKeyMiddleware(config.discord.publicKey), 
+  config = config_;
+  checker = checker_;
+  transactionManager = transactionManager_;
+  logger = logger_;
+
+  app.post(
+    '/interactions',
+    verifyKeyMiddleware(config.discord.publicKey),
+    validateMantraAccount,
     async (req, res) => {
       handleInteraction(req, res);
     })

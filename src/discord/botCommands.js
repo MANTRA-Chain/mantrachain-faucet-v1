@@ -1,33 +1,33 @@
 import { capitalize, InstallGlobalCommands } from './utils.js';
-import loadConfig from './configLoader.js';
+import loadConfig from '../configLoader.js';
 
 
 async function register() {
-    const config = await loadConfig();
+  const config = await loadConfig();
 
-// // Get the game choices from game.js
-// function createCommandChoices() {
-//   const choices = getRPSChoices();
-//   const commandChoices = [];
+  // // Get the game choices from game.js
+  // function createCommandChoices() {
+  //   const choices = getRPSChoices();
+  //   const commandChoices = [];
 
-//   for (let choice of choices) {
-//     commandChoices.push({
-//       name: capitalize(choice),
-//       value: choice.toLowerCase(),
-//     });
-//   }
+  //   for (let choice of choices) {
+  //     commandChoices.push({
+  //       name: capitalize(choice),
+  //       value: choice.toLowerCase(),
+  //     });
+  //   }
 
-//   return commandChoices;
-// }
+  //   return commandChoices;
+  // }
 
-// Simple test command
-const TEST_COMMAND = {
-  name: 'test',
-  description: 'Basic command',
-  type: 1,
-};
+  // Simple test command
+  const TEST_COMMAND = {
+    name: 'test',
+    description: 'Basic command',
+    type: 1,
+  };
 
-const REQUEST_TOKEN_COMMAND = {
+  const REQUEST_TOKEN_COMMAND = {
     name: 'request',
     description: 'Request tokens from the faucet',
     type: 1
@@ -39,9 +39,9 @@ const REQUEST_TOKEN_COMMAND = {
     // }]
   };
 
-const ALL_COMMANDS = [REQUEST_TOKEN_COMMAND];
+  const ALL_COMMANDS = [REQUEST_TOKEN_COMMAND];
 
-    await InstallGlobalCommands(config, ALL_COMMANDS);
+  await InstallGlobalCommands(config, ALL_COMMANDS);
 }
 
 
