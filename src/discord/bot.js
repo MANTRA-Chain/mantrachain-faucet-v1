@@ -61,7 +61,19 @@ function handleCommand(message, res) {
 }
 
 async function handleModalSubmit(message, res) {
-  const walletAddress = message.data.components[0].components[0].value;
+  // Extract wallet address
+  const walletAddress = message.data?.components?.[0]?.components?.[0]?.value;
+  if (!walletAddress) {
+    logger.warn("Malformed Modal Submit - Missing wallet address in modal submit", message);
+    return res.send(createEphemeralResponse(`Wallet address is missing. Please provide a valid wallet address.`));
+  }
+
+
+  if (!message.member || !message.member.user || !message.member.user.id || !message.member.user.username) {
+    logger.warn("Malformed Modal Submit - Missing member or user", message);
+    return res.send(createEphemeralResponse(`We couldn't process your request because it was not formed correctly. If this persists, contact admin.`))
+  }
+
   const userId = message.member.user.id;
   const username = message.member.user.username;
   const chain = config.blockchains[0].name; // see Important note above.
@@ -82,15 +94,15 @@ async function processWalletRequest(walletAddress, userId, username, channelId, 
           if (result.code == 0) {
             checker.update(userId);
             checker.update(walletAddress);
-            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createSuccessMessage(userId, walletAddress) } });
+            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createSuccessMessage(userId, walletAddress) } }, logger);
           }
           else {
-            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createErrorMessage(userId, result.message) } });
+            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createErrorMessage(userId, result.message) } }, logger);
           }
         })
         .catch(async (err) => {
           logger.error("Failed to send transaction: ", err);
-          await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createErrorMessage(userId) } });
+          await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createErrorMessage(userId) } }, logger);
         });
     } else {
       return createEphemeralResponse(`You have requested too often. Please try again later.`);
@@ -100,7 +112,7 @@ async function processWalletRequest(walletAddress, userId, username, channelId, 
 
   } catch (error) {
     logger.error('Transaction error', error);
-    DiscordRequest({ content: createErrorMessage(userId) }, channelId);
+    DiscordRequest({ content: createErrorMessage(userId) }, channelId, {}, logger);
     return createEphemeralResponse(`Error processing your request. Please try again.`);
   }
 }
