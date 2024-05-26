@@ -82,15 +82,15 @@ async function processWalletRequest(walletAddress, userId, username, channelId, 
           if (result.code == 0) {
             checker.update(userId);
             checker.update(walletAddress);
-            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createSuccessMessage(userId, walletAddress) } });
+            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createSuccessMessage(userId, walletAddress) } }, logger);
           }
           else {
-            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createErrorMessage(userId, result.message) } });
+            await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createErrorMessage(userId, result.message) } }, logger);
           }
         })
         .catch(async (err) => {
           logger.error("Failed to send transaction: ", err);
-          await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createErrorMessage(userId) } });
+          await DiscordRequest(config, messageEndpoint, { method: 'POST', body: { content: createErrorMessage(userId) } }, logger);
         });
     } else {
       return createEphemeralResponse(`You have requested too often. Please try again later.`);
@@ -100,7 +100,7 @@ async function processWalletRequest(walletAddress, userId, username, channelId, 
 
   } catch (error) {
     logger.error('Transaction error', error);
-    DiscordRequest({ content: createErrorMessage(userId) }, channelId);
+    DiscordRequest({ content: createErrorMessage(userId) }, channelId, {}, logger);
     return createEphemeralResponse(`Error processing your request. Please try again.`);
   }
 }
