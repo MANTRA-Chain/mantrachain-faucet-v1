@@ -23,7 +23,7 @@ export function VerifyDiscordRequest(clientKey) {
 
 export async function DiscordRequest(config, endpoint, options, logger, attempt = 1) {
   const MAX_ATTEMPTS = 5;
-  const MIN_DELAY = (1.25 * 1000) + (Math.floor(Math.random() * 5) + 1) * 1000;
+  const MIN_DELAY = (1.25 * 1000) + (Math.floor(Math.random() * 15) + 1) * 1000;
 
   if (attempt >= MAX_ATTEMPTS) {
     logger.alert('Discord send reached maximum attempts reached trying to send Discord request. Bailing out.')
