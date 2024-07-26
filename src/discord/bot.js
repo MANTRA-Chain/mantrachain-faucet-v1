@@ -159,7 +159,7 @@ export function enableDiscord(app, config_, checker_, transactionManager_, logge
   app.post(
     '/interactions',
     verifyKeyMiddleware(config.discord.publicKey),
-    checkAllowedGuilds(config.discord.allowed_guilds),
+    checkAllowedGuilds(config.discord.allowed_guilds, logger),
     validateMantraAccount,
     async (req, res) => {
       handleInteraction(req, res);
