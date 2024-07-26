@@ -152,6 +152,7 @@ export default {
         discordToken: "SECRET TOKEN",
         publicKey: "PUBLIC KEY PUBLIC KEY PUBLIC KEY",
         discordInvite: "https://discord.gg/gfks4TwAJV",
-        explorer: "https://explorer.hongbai.mantrachain.io/mantrachain"
+        explorer: "https://explorer.hongbai.mantrachain.io/mantrachain",
+        allowed_guilds: ['1143334664757588050', '1235830480331477043'] //SERVER ALLOW LIST
     },
 ```

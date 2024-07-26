@@ -8,7 +8,8 @@ import {
   verifyKeyMiddleware
 } from 'discord-interactions';
 import { REJECT_EMOJI, DiscordRequest } from './utils.js';
-import { validateMantraAccount } from './validation.js';
+import { validateMantraAccount, checkAllowedGuilds } from './validation.js';
+
 
 const REQUEST_RESPONSE_MESSAGE = {
   type: InteractionResponseType.MODAL,
@@ -158,6 +159,7 @@ export function enableDiscord(app, config_, checker_, transactionManager_, logge
   app.post(
     '/interactions',
     verifyKeyMiddleware(config.discord.publicKey),
+    checkAllowedGuilds(config.discord.allowed_guilds),
     validateMantraAccount,
     async (req, res) => {
       handleInteraction(req, res);
