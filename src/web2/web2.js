@@ -145,7 +145,7 @@ export function enableWeb2ConfigApi(app, config, checker, transactionManager, lo
         project.web2enabled = config.web2 && config.web2.enabled
         project.discordInvite = config.discord && config.discord.enabled ? config.discord.discordInvite : ''
         project.difficulty = config.pow && config.pow.enabled ? config.pow.difficulty : 0;
-
+        project.explorer = config.discord.explorer;
         if (config.captcha && config.captcha.enabled)
             project.siteKey = config.captcha.siteKey;
 
