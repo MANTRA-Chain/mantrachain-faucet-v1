@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MANTRA Hongbai</title>
-    <link href="https://assets-global.website-files.com/65792d81c6f8ef2d05833e48/65792d81c6f8ef2d05833ed0_favicon-32x32.png" rel="shortcut icon" type="image/x-icon">
+    <link
+        href="https://assets-global.website-files.com/65792d81c6f8ef2d05833e48/65792d81c6f8ef2d05833ed0_favicon-32x32.png"
+        rel="shortcut icon" type="image/x-icon">
     <style>
         html {
             -webkit-text-size-adjust: 100%;
@@ -8131,7 +8133,7 @@
 </head>
 
 <body class="body">
-    <div class="znavbar w-nav bg-transparent" >
+    <div class="znavbar w-nav bg-transparent">
         <div class="container__lg w-container " style="background-color: #000000FF;">
             <a href="https://mantrachain.io" class="w-nav-brand" aria-label="home">
                 <img loading="lazy" height="70" alt="MANTRA Chain logo"
@@ -8145,12 +8147,11 @@
             <div class="w-layout-blockcontainer container__lg-banner w-container">
                 <div class="block__hero-text">
                     <div class="text-mono__sm full-gradient">&lt;&gt;MANTRA CHAIN&lt;/&gt;</div>
-                    <h1 class="heading__2xl">Hongbai (Testnet) Faucet</h1>
+                    <h1 class="heading__2xl">Dukong (Testnet) Faucet</h1>
 
-                    <p class="text__lg center">The first RWA Layer 1 Blockchain, capable of adherence and enforcement of
-                        real world regulatory requirements.</p>
+                    <p class="text__lg center">Bringing the world’s financial ecosystem onchain</p>
                     <p class="text__lg center">Get your tokens and get started!</p>
-                    <div class="container" id="app" v-cloak >
+                    <div class="container" id="app" v-cloak>
                         <div class="card p-3 w-100" style="background-color: #00000080;" v-if="web2enabled">
 
                             <div class="row g-5">
@@ -8162,11 +8163,11 @@
                                     </span>
                                     <input id="address" class="form-control" :placeholder="placeholder"
                                         v-model="address" name="address">
-                                    <button type="button" class="btn btn-secondary d-flex flex-row g-recaptcha" :disabled="isBusy"
-                                        @click="requestToken(this)">
+                                    <button type="button" class="btn btn-secondary d-flex flex-row g-recaptcha"
+                                        :disabled="isBusy" @click="requestToken(this)">
                                         <span>
                                             <span id="button-loading" class="spinner-border spinner-border-sm mt-1 mr-1"
-                                                 role="status" aria-hidden="true" v-if="isBusy"></span>
+                                                role="status" aria-hidden="true" v-if="isBusy"></span>
                                         </span>
                                         <span class="sr-only">Request Token</span>
                                     </button>
@@ -8189,24 +8190,28 @@
                                     {{progressMessage}}
                                 </div>
                                 <div class="p-2">
-                                <div class="progress p-0">
-                                    <div class="progress-bar progress-bar-striped progress-bar-animated"
-                                        role="progressbar" :style="{ width: progress + '%' }" :aria-valuenow="progress"
-                                        aria-valuemin="0" aria-valuemax="100">
-                                        {{progress}}%</div>
+                                    <div class="progress p-0">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                            role="progressbar" :style="{ width: progress + '%' }"
+                                            :aria-valuenow="progress" aria-valuemin="0" aria-valuemax="100">
+                                            {{progress}}%</div>
+                                    </div>
                                 </div>
-                                </div>
-                                <div class="text-muted text-center fw-lighter fw-6 p-4">The proof-of-work challenge may take up to a minute (or two) depending on your computer, this is to prevent abuse of the faucet.</div>
+                                <div class="text-muted text-center fw-lighter fw-6 p-4">The proof-of-work challenge may
+                                    take up to a minute (or two) depending on your computer, this is to prevent abuse of
+                                    the faucet.</div>
                             </div>
                             <div id="message" v-html="message"></div>
 
-                           
+
 
                         </div>
-                        <div class="card p-3 w-100 text-center align-center" style="background-color: #00000080;" v-if="!web2enabled">
+                        <div class="card p-3 w-100 text-center align-center" style="background-color: #00000080;"
+                            v-if="!web2enabled">
                             <div>
-                            <a class="btn btn-primary text-center" v-bind:href="discordInvite">Join our Discord to get tokens!</a>
-                        </div>
+                                <a class="btn btn-primary text-center" v-bind:href="discordInvite">Join our Discord to
+                                    get tokens!</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -8251,6 +8256,7 @@
                     this.web2enabled = data.web2enabled
                     this.discordInvite = data.discordInvite
                     this.difficulty = data.difficulty
+                    this.explorer = data.explorer;
                     // this.placeholder = `Input an address (e.g.: ${data.sample[this.chain]}) to received tokens`
                     this.onChange()
                     if (data.deployer) {
@@ -8277,7 +8283,7 @@
             },
             methods: {
                 async solveChallenge(nonce, timestamp, difficulty) {
-                    
+
                     return new Promise(resolve => {
                         const worker = new Worker('powWorker.js');
 
@@ -8323,7 +8329,7 @@
                         return;
                     }
 
-                    const { nonce, timestamp, solution, difficulty } = this.difficulty ? await this.requestPowChallengeAndSolve() : {nonce: '', timestamp: '' , solution: '', difficulty: '' };
+                    const { nonce, timestamp, solution, difficulty } = this.difficulty ? await this.requestPowChallengeAndSolve() : { nonce: '', timestamp: '', solution: '', difficulty: '' };
 
                     this.submitData(obj, nonce, timestamp, solution, recaptchaResponse);
 
@@ -8346,8 +8352,9 @@
                         this.isBusy = false;
                         //document.getElementById("button-loading").style.display = 'none';
                         this.message = `<div class="alert alert-${data.result.code === 0 ? 'success' : 'danger'} alert-dismissible show fade mt-2" role="alert">
-                        <li>${data.result.code === 0 ? 'Token sent' : 'Request failed'}</li>
-                        <textarea class="form-control mt-1" rows="5" style="background-color:transparent">${JSON.stringify(data, null, 2)}</textarea>
+                        <h2>${data.result.code === 0 ? 'Token sent' : 'Request failed'}</h2>
+                        <a href="${this.explorer}/${data.result.transactionHash}" target="_blank">Check it on the explorer ${data.result.transactionHash}</a>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>`;
                     }).catch(error => {
