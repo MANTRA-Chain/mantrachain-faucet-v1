@@ -6,6 +6,7 @@
 .env
 config.hongbai.js
 config.dev.*
+config.dukong.js
 .trash
 
 # Ignore generated credentials from google-github-actions/auth
