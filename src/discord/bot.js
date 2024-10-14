@@ -119,7 +119,7 @@ async function processWalletRequest(walletAddress, userId, username, channelId, 
 }
 
 function createSuccessMessage(userId, walletAddress) {
-  return `Hey <@${userId}> 👋, we've sent you some tokens! [Check them here](${config.discord.explorer}/accounts/${walletAddress})`;
+  return `Hey <@${userId}> 👋, we've sent you some tokens! [Check them here](${config.discord.explorer}/account/${walletAddress})`;
 }
 
 function createErrorMessage(userId, errorMessage) {
