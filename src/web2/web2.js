@@ -1,5 +1,5 @@
 import { Wallet } from '@ethersproject/wallet'
-import { ethers } from 'ethers';
+import { JsonRpcProvider } from 'ethers';
 import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
 import { SigningStargateClient } from "@cosmjs/stargate";
 
@@ -17,7 +17,7 @@ export function enableBalanceApi(app, config, checker, transactionManager, logge
             const chainConf = config.blockchains.find(x => x.name === chain)
             if (chainConf) {
                 if (chainConf.type === 'Ethermint') {
-                    const ethProvider = new ethers.providers.JsonRpcProvider(chainConf.endpoint.evm_endpoint);
+                    const ethProvider = new JsonRpcProvider(chainConf.endpoint.evm_endpoint);
                     const wallet = Wallet.fromMnemonic(chainConf.sender.mnemonic).connect(ethProvider);
                     await wallet.getBalance().then(ethBlance => {
                         balance = {

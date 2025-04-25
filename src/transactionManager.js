@@ -4,6 +4,7 @@ import { bech32 } from 'bech32';
 import { SigningStargateClient } from "@cosmjs/stargate";
 import { DirectSecp256k1HdWallet, coins } from '@cosmjs/proto-signing';
 import { TxBody, TxRaw } from 'cosmjs-types/cosmos/tx/v1beta1/tx.js';
+import { convertEVMAddressToMantraAddress } from "./addressUtils.js";
 
 export class TransactionManager {
 
@@ -334,8 +335,13 @@ export class TransactionManager {
     if (chainConf.type === 'Ethermint') {
       return this.sendEvmosTx(recipient, chain)
     }
+
+    // Address validation is done in validation.js before this function is called
+    if (recipient.startsWith('0x')) {
+      const mantraAddress = convertEVMAddressToMantraAddress(recipient);
+      return this.sendRawCosmosTx(mantraAddress, chain)
+    }
+
     return this.sendRawCosmosTx(recipient, chain)
   }
-
 }
-

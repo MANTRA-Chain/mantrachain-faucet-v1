@@ -4,12 +4,17 @@ import {
     InteractionResponseType,
     InteractionResponseFlags
 } from 'discord-interactions';
+import {isAddress} from "ethers";
+import {mantraAddressPrefix} from "../constant.js";
 
 // Middleware to validate Mantra account address
 function validateMantraAccount(req, res, next) {
 
     if (req.body && req.body.type == InteractionType.MODAL_SUBMIT) {
 
+        /**
+         * @type string
+         */
         const walletAddress = req.body.data.components[0].components[0].value;
         let message = 'The address you sent is not valid for Hongbai: ';
         const errorResponse = {
@@ -17,17 +22,23 @@ function validateMantraAccount(req, res, next) {
             data: { content: message, flags: InteractionResponseFlags.EPHEMERAL }
         };
 
-
-        try {
-            const decoded = bech32.decode(walletAddress);
-            if (decoded.prefix !== 'mantra') {
-                errorResponse.data.content += 'Invalid account prefix - should be "mantra"';
+        if (walletAddress.startsWith('0x')) {
+            if (!isAddress(walletAddress)) {
+                errorResponse.data.content += 'Invalid EVM address';
                 return res.status(200).json(errorResponse);
             }
-            next();
-        } catch (err) {
-            errorResponse.data.content += 'Invalid account format';
-            return res.status(200).json(errorResponse);
+        } else {
+            try {
+                const decoded = bech32.decode(walletAddress);
+                if (decoded.prefix !== mantraAddressPrefix) {
+                    errorResponse.data.content += `Invalid account prefix - should be "${mantraAddressPrefix}"`;
+                    return res.status(200).json(errorResponse);
+                }
+                next();
+            } catch (err) {
+                errorResponse.data.content += 'Invalid account format';
+                return res.status(200).json(errorResponse);
+            }
         }
     }
     else {
