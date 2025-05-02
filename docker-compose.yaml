@@ -9,11 +9,11 @@ services:
     environment:
       - CONFIG_FILE_PATH=/app/config/config.js
       - FAUCET_MNEMONIC="sing vague bachelor congress road group awful garment strong sure chalk country draft advance basic valid dismiss love proud text spoil turn logic wall"
-      - FAUCET_CHAIN_ID=omstead-5887-1
+      - FAUCET_CHAIN_ID=mantra-canary-net-1
       - FAUCET_DENOM=uom
       - FAUCET_AMOUNT=1000000
       - FAUCET_GAS_PRICE=0.025
-      - FAUCET_RPC_URL=https://api.evm-canary.mantrachain.dev:443
+      - FAUCET_RPC_URL=https://api.canary.mantrachain.dev:443
     volumes:
       - ./config.js:/app/config/config.js
     ports:
