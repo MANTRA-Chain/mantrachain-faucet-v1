@@ -63,8 +63,6 @@ helmCharts:
           secretName: faucet-omstead-5887-secrets
           defaultMode: 420
 
-    # envFrom:
-    #   - name: faucet-omstead-5887-env-variables
-    #     type: configmap
-    env:
-      CONFIG_FILE_PATH: "'/app/config/config.js'"
+      envFrom:
+        - name: faucet-omstead-5887-env-variables
+          type: configmap
