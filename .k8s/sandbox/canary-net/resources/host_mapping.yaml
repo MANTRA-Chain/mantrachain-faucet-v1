@@ -1,22 +1,22 @@
 apiVersion: getambassador.io/v3alpha1
 kind: Host
 metadata:
-  name: faucet-evm-canary-mantrachain-dev
+  name: faucet-canary-mantrachain-dev
   annotations:
     external-dns.ambassador-service: emissary-ingress.emissary
 spec:
-  hostname: faucet.evm-canary.mantrachain.dev
+  hostname: faucet.canary.mantrachain.dev
   acmeProvider:
     authority: none
   tlsSecret:
-    name: asia-east2-std.evm-canary.mantrachain.dev-wildcard-tls-secret
+    name: asia-east2-std.canary.mantrachain.dev-wildcard-tls-secret
     namespace: emissary
 ---
 apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
-  name: faucet-evm-canary-mantrachain-dev
+  name: faucet-canary-mantrachain-dev
 spec:
-  hostname: "faucet.evm-canary.mantrachain.dev"
+  hostname: "faucet.canary.mantrachain.dev"
   prefix: /
-  service: faucet-omstead-5887:80
+  service: faucet-canary-net:80
