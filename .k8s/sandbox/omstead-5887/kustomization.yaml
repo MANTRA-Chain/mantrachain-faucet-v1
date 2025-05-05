@@ -33,7 +33,7 @@ helmCharts:
     service:
       enabled: true
       port:
-        - port: 8000
+        - port: 80
           targetPort: 8000
           protocol: TCP
           name: http
