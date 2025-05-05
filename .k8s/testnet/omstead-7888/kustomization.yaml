@@ -44,7 +44,7 @@ helmCharts:
         pullPolicy: Always
         tag: "61628e1"
       imagePullSecrets:
-        - name: ghcr-mantrachaind-registry-read-secret
+        - name: ghcr-mantra-chain-applications-registry-read-secret
       annotations:
         argocd.argoproj.io/sync-wave: "2"
       service:
