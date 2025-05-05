@@ -31,6 +31,7 @@ helmCharts:
     nameOverride: faucet-omstead-5887
     fullnameOverride: faucet-omstead-5887
     service:
+      enabled: true
       port:
         - port: 8000
           targetPort: 8000
