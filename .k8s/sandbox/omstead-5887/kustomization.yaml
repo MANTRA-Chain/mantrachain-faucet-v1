@@ -42,6 +42,8 @@ helmCharts:
         repository: ghcr.io/mantra-finance/cosmos-sdk-faucet
         pullPolicy: Always
         tag: "devops-k8s"
+      imagePullSecrets:
+        - name: ghcr-mantrachaind-registry-read-secret
       annotations:
         argocd.argoproj.io/sync-wave: "2"
       service:
