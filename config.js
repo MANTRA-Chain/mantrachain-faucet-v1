@@ -33,7 +33,12 @@ export default {
             sender: {
                 mnemonic: "beauty genre icon salmon receive year unique butter noble bench abandon acid tornado kite travel safe ocean keep enhance wife atom diesel dragon bright",
                 option: {
-                    hdPaths: [stringToPath("m/44'/118'/0'/0/0")],
+                    hdPaths: [
+                      stringToPath(
+                        // On omstead coin type is 60
+                        "m/44'/60'/0'/0/0"
+                      )
+                    ],
                     prefix: "mantra"
                 }
             },
