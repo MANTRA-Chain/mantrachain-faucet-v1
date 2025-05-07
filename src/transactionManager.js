@@ -135,6 +135,7 @@ export class TransactionManager {
     if (!this._wallets.get(chainConf.name)) {
       const wallet = await DirectSecp256k1HdWallet.fromMnemonic(chainConf.sender.mnemonic, chainConf.sender.option);
       const [firstAccount] = await wallet.getAccounts();
+      this.logger.info("Faucet sender wallet address: ", firstAccount.address);
 
       this._wallets.set(chainConf.name, { wallet, firstAccount });
     }
@@ -339,6 +340,7 @@ export class TransactionManager {
     // Address validation is done in validation.js before this function is called
     if (recipient.startsWith('0x')) {
       const mantraAddress = convertEVMAddressToMantraAddress(recipient);
+      this.logger.info(`Converting EVM address ${recipient} to MANTRA address ${mantraAddress}`);
       return this.sendRawCosmosTx(mantraAddress, chain)
     }
 

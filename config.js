@@ -24,19 +24,18 @@ export default {
     },
     blockchains: [
         {
-            name: "mantrachain-9001",
+            name: "omstead_7888-1",
             endpoint: {
                 // make sure that CORS is enabled in rpc section in config.toml
                 // cors_allowed_origins = ["*"]
-                rpc_endpoint: " http://35.192.223.187:26657",
+                rpc_endpoint: "https://rpc.omstead.io",
             },
             sender: {
                 mnemonic: "beauty genre icon salmon receive year unique butter noble bench abandon acid tornado kite travel safe ocean keep enhance wife atom diesel dragon bright",
                 option: {
                     hdPaths: [
                       stringToPath(
-                        // On omstead coin type is 60
-                        "m/44'/60'/0'/0/0"
+                        "m/44'/118'/0'/0/0"
                       )
                     ],
                     prefix: "mantra"
@@ -44,14 +43,14 @@ export default {
             },
             tx: {
                 amount: {
-                    denom: "uaum",
+                    denom: "uom",
                     amount: "10000000"
                 },
                 fee: {
                     amount: [
                         {
-                            amount: "0",
-                            denom: "uaum"
+                            amount: "2000",
+                            denom: "uom"
                         }
                     ],
                     gas: "200000"
