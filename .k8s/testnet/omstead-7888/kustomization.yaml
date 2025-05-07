@@ -42,7 +42,7 @@ helmCharts:
       image:
         repository: ghcr.io/mantra-finance/cosmos-sdk-faucet
         pullPolicy: Always
-        tag: "61628e1"
+        tag: "03f46d9"
       imagePullSecrets:
         - name: ghcr-mantra-chain-applications-registry-read-secret
       annotations:
