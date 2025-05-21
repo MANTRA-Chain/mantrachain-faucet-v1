@@ -1,0 +1,27 @@
+{{- $fullname := include "app.fullname" . }}
+{{- $labels := include "app.labels" . }}
+{{- range $val := .Values.configMap }}
+{{- if $val.data }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  {{- if $val.name }}
+  name: {{ $val.name }}
+  {{- else if $val.suffix }}
+  name: {{ $fullname }}-{{ $val.suffix }}
+  {{- else }}
+  name: {{ $fullname }}
+  {{- end }}
+  labels:
+    {{- $labels | nindent 4 }}
+data:
+  {{- range $k, $v := $val.data }}
+    {{ $k }}: {{ $v | quote }}
+    {{- if eq $k "file" }}
+    file: |-
+      {{ $v }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}

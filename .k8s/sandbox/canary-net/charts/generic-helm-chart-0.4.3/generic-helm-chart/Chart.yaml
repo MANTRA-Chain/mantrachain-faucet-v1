@@ -1,0 +1,20 @@
+apiVersion: v2
+appVersion: 0.4.3
+description: A Generic Helm Chart to support easy deployment of micro-services
+icon: https://helm.sh/img/helm.svg
+keywords:
+- generic-helm-chart
+- micro-service
+maintainers:
+- email: marcus.cheng@hextrust.com
+  name: mkcc6
+  url: https://github.com/mkcc6
+- email: phuc.truong@hextrust.com
+  name: ryanth2022
+  url: https://github.com/ryanth2022
+- email: avbaideme@proton.me
+  name: AaronForce1
+  url: https://github.com/aaronforce1
+name: generic-helm-chart
+type: application
+version: 0.4.3

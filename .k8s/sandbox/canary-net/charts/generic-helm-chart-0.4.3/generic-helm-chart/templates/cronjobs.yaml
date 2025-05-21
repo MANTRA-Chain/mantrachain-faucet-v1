@@ -1,0 +1,11 @@
+{{- $jobs := .Values.cronJobs }}
+{{- range $jobs }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  {{ toYaml .metadata | nindent 4 }}
+spec:
+  schedule: {{ .schedule }}
+  template:
+    {{ toYaml .template | nindent 6 }}
+{{- end }}

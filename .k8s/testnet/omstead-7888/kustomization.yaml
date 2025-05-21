@@ -67,3 +67,6 @@ helmCharts:
       envFrom:
         - name: faucet-omstead-7888-env-variables
           type: configmap
+
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
