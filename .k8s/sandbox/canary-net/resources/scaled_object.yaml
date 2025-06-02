@@ -1,0 +1,23 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: faucet-canary-net
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: faucet-canary-net
+
+  minReplicaCount: 0
+
+  pollingInterval: 30
+  cooldownPeriod: 300
+
+  triggers:
+    # Weekdays: 8 AM to 11 PM scale from 0 to 2 replicas, rest of the time scale to 0 replicas
+    - type: cron
+      metadata:
+        timezone: "Asia/Hong_Kong"
+        start: "0 8 * * 1-5"
+        end: "0 23 * * 1-5"
+        desiredReplicas: "2"

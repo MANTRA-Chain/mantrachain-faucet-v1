@@ -3,7 +3,7 @@ kind: PodDisruptionBudget
 metadata:
   name: faucet-canary-net
 spec:
-  minAvailable: 1
+  maxUnavailable: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: faucet-canary-net

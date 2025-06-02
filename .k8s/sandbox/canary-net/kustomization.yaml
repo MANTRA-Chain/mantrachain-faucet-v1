@@ -5,6 +5,7 @@ namespace: mantra-canary-net-1-applications
 resources:
   - resources/host_mapping.yaml
   - resources/pod_disruption_budget.yaml
+  - resources/scaled_object.yaml
   - secrets/secret.yaml
 
 configMapGenerator:
