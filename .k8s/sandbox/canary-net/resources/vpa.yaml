@@ -1,0 +1,11 @@
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: faucet-canary-net
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: Deployment
+    name: faucet-canary-net
+  updatePolicy:
+    updateMode: "Auto"

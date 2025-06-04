@@ -6,6 +6,7 @@ resources:
   - resources/host_mapping.yaml
   - resources/pod_disruption_budget.yaml
   - resources/scaled_object.yaml
+  - resources/vpa.yaml
   - secrets/secret.yaml
 
 configMapGenerator:
