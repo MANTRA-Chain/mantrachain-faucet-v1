@@ -18,6 +18,12 @@ export const convertEVMAddressToMantraAddress = (evmAddress) => {
   return bech32.encode(mantraAddressPrefix, bz);
 }
 
+export const convertMantraAddressToEVMAddress = (mantraAddress) => {
+  const decoded = bech32.decode(mantraAddress);
+  const hexBytes = convertBits(decoded.words, 5, 8, false);
+  return `0x${Buffer.from(hexBytes).toString('hex')}`;
+}
+
 /**
  * General power-of-2 base conversion.
  * References:

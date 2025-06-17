@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { TransactionManager } from '../src/transactionManager.js';
 import sinon from 'sinon';
-import {convertEVMAddressToMantraAddress} from "../src/addressUtils.js";
+import { convertEVMAddressToMantraAddress, convertMantraAddressToEVMAddress } from "../src/addressUtils.js";
 
 describe('TransactionManager', () => {
   let tm;
@@ -60,6 +60,13 @@ it('should enqueue and process a transaction', async () => {
     const convertedAddress = convertEVMAddressToMantraAddress(evmAddress);
     expect(convertedAddress.toLowerCase()).to.equal(expectedMantraAddress.toLowerCase());
   });
+
+  it('should be able to convert MANTRA address to EVM address', () => {
+    const mantraAddress = 'mantra1z3yty3yswenj4ngk0wg5qmqf25ssr3wfqayuhv';
+    const expectedEVMAddress = '0x1448b2449076672aCD167b91406c09552101C5C9';
+    const convertedAddress = convertMantraAddressToEVMAddress(mantraAddress);
+    expect(convertedAddress.toLowerCase()).to.equal(expectedEVMAddress.toLowerCase());
+  })
 
   afterEach(() => {
     sinon.restore();
