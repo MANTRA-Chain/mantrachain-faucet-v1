@@ -68,5 +68,10 @@ helmCharts:
         - name: faucet-omstead-7888-env-variables
           type: configmap
 
-      nodeSelector:
-        cloud.google.com/gke-spot: "true"
+      resources:
+        limits:
+          cpu: 100m
+          memory: 256Mi
+        requests:
+          cpu: 20m
+          memory: 128Mi
