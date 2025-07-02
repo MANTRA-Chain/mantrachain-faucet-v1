@@ -1,0 +1,77 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: mantra-dukong-1-applications
+
+resources:
+  - resources/host_mapping.yaml
+  - resources/pod_disruption_budget.yaml
+  - secrets/secret.yaml
+
+configMapGenerator:
+  - envs:
+      - resources/configmap.yaml
+    name: faucet-dukong-env-variables
+
+# enable logging in logs explorer
+labels:
+  - pairs:
+      gke.logging.enabled: "true"
+    includeSelectors: false
+    includeTemplates: true
+
+helmCharts:
+#
+# FAUCET OMSTEAD
+#
+- name: generic-helm-chart
+  repo: https://mantra-chain.github.io/generic-helm-chart
+  version: 0.4.3
+  releaseName: faucet-dukong
+  valuesInline:
+    nameOverride: faucet-dukong
+    fullnameOverride: faucet-dukong
+    service:
+      enabled: true
+      port:
+        - port: 80
+          targetPort: 8000
+          protocol: TCP
+          name: http
+    deployment:
+      replicaCount: 2
+      image:
+        repository: ghcr.io/mantra-chain/mantrachain-faucet-v1
+        pullPolicy: Always
+        tag: "c804a24"
+      imagePullSecrets:
+        - name: ghcr-mantra-chain-applications-registry-read-secret
+      annotations:
+        argocd.argoproj.io/sync-wave: "2"
+      service:
+        port:
+          - containerPort: 8000
+            protocol: TCP
+            name: http
+      
+      volumeMounts:
+      - name: faucet-dukong-config
+        mountPath: /app/config/config.js
+        subPath: config.js
+      
+      volumes:
+      - name: faucet-dukong-config
+        secret:
+          secretName: faucet-dukong-secrets
+          defaultMode: 420
+
+      envFrom:
+        - name: faucet-dukong-env-variables
+          type: configmap
+
+      resources:
+        limits:
+          cpu: 100m
+          memory: 256Mi
+        requests:
+          cpu: 20m
+          memory: 128Mi
