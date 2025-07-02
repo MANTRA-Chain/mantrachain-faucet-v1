@@ -5,7 +5,7 @@ metadata:
   annotations:
     external-dns.ambassador-service: emissary-ingress.emissary
 spec:
-  hostname: faucet.omstead.io
+  hostname: faucet.dukong.mantrachain.io
   acmeProvider:
     authority: none
   tlsSecret:
@@ -17,6 +17,6 @@ kind: Mapping
 metadata:
   name: faucet.dukong.mantrachain.io
 spec:
-  hostname: "faucet.omstead.io"
+  hostname: "faucet.dukong.mantrachain.io"
   prefix: /
   service: faucet-dukong:80
