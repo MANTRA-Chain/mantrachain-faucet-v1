@@ -24,11 +24,11 @@ export default {
     },
     blockchains: [
         {
-            name: "omstead_7888-1",
+            name: "mantra-dukong-1",
             endpoint: {
                 // make sure that CORS is enabled in rpc section in config.toml
                 // cors_allowed_origins = ["*"]
-                rpc_endpoint: "https://rpc.omstead.io",
+                rpc_endpoint: "https://rpc.dukong.mantrachain.io",
             },
             sender: {
                 mnemonic: "beauty genre icon salmon receive year unique butter noble bench abandon acid tornado kite travel safe ocean keep enhance wife atom diesel dragon bright",
