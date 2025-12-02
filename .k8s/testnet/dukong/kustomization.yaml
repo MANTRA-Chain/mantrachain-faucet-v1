@@ -42,7 +42,7 @@ helmCharts:
       image:
         repository: ghcr.io/mantra-chain/mantrachain-faucet-v1
         pullPolicy: Always
-        tag: "88cc601"
+        tag: "4033c7d"
       imagePullSecrets:
         - name: ghcr-mantra-chain-applications-registry-read-secret
       annotations:
