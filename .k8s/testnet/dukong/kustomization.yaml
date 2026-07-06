@@ -7,6 +7,9 @@ resources:
   - resources/pod_disruption_budget.yaml
   - secrets/secret.yaml
 
+generatorOptions:
+  disableNameSuffixHash: true
+
 configMapGenerator:
   - envs:
       - resources/configmap.yaml
